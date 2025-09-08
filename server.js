@@ -1,16 +1,27 @@
 const express = require("express");
+const cors = require("cors");
+const path = require("path");
 const swaggerUi = require("swagger-ui-express");
 const YAML = require("yamljs");
+const usuarioRoutes = require("./routes/usuarioRoutes");
+require("dotenv").config();
 
 const app = express();
-const port = 3000;
+
+// Middlewares
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 
 // Cargar especificación desde swagger.yaml
 const swaggerDocument = YAML.load("./swagger.yaml");
 
-// Ruta de documentación
-app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+// Rutas
+//app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+app.use(usuarioRoutes);
 
-app.listen(port, () => {
-  console.log(`Servidor corriendo en http://localhost:${port}/docs`);
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Servidor corriendo en http://localhost:${PORT}`);
 });
