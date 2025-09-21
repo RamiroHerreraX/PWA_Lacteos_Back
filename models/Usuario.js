@@ -18,6 +18,15 @@ class Usuario {
     const result = await pool.query("SELECT * FROM usuarios WHERE email = $1", [email]);
     return result.rows[0]; 
   }
+
+  static async actualizarPassword(email, newHash) {
+  const result = await pool.query(
+    "UPDATE usuarios SET password=$1 WHERE email=$2 RETURNING *",
+    [newHash, email]
+  );
+  return result.rows[0];
+}
+
 }
 
 module.exports = Usuario;
