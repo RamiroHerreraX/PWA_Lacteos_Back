@@ -14,12 +14,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 
-// Cargar especificación desde swagger.yaml
+// swagger.yaml
 const swaggerDocument = YAML.load("./swagger.yaml");
 
 // Rutas
-//app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-app.use(usuarioRoutes);
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+app.use("/api",usuarioRoutes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
