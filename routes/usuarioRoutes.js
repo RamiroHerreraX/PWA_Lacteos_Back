@@ -35,6 +35,6 @@ router.post("/reset/:token", authController.restablecerPassword);
 
 // Rutas de usuarios
 router.get("/usuario", usuarioController.listarUsuarios);
+//router.post("/usuario", usuarioController.crearUsuario);
 router.post("/usuario/nuevo", usuarioController.crearUsuario);
-
 module.exports = router;

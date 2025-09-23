@@ -65,7 +65,7 @@ paths:
     post:
       tags: [Autenticación]
       summary: Verificar código OTP
-      description: Validar código de autenticación de dos factores
+      description: Validar código de autenticación de dos factores y registrar geolocalización del inicio de sesión
       requestBody:
         required: true
         content:
@@ -95,6 +95,27 @@ paths:
                   rol:
                     type: string
                     example: "admin"
+                  ubicacion:
+                    type: object
+                    description: Datos de geolocalización aproximada del inicio de sesión
+                    properties:
+                      ip:
+                        type: string
+                        example: "187.190.38.55"
+                      country:
+                        type: string
+                        example: "MX"
+                      region:
+                        type: string
+                        example: "CMX"
+                      city:
+                        type: string
+                        example: "Ciudad de México"
+                      ll:
+                        type: array
+                        items:
+                          type: number
+                        example: [19.42847, -99.12766]
         '400':
           description: OTP incorrecto o expirado
 

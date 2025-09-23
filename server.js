@@ -26,3 +26,13 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
 });
+
+// Middleware de manejo de errores
+app.use((err, req, res, next) => {
+  console.error("❌ Error capturado:", err.stack);
+
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || "Error interno del servidor"
+  });
+});
