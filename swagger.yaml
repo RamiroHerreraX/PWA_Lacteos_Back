@@ -3,6 +3,7 @@ info:
   title: 🎯 PWA Lacteos - API Documentation & Testing Matrix
   description: |
     # Sistema de Gestión de Usuarios con Autenticación 2FA
+    ## Descripción General
     
     ## 📋 Matriz de Pruebas Integrada
     
@@ -394,3 +395,5 @@ components:
       description: Token de acceso faltante o inválido
     Forbidden:
       description: No tiene permisos para esta acción
+
+
