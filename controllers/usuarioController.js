@@ -106,3 +106,51 @@ exports.verificarOtp = async (req, res) => {
   delete otpStore[email];
   res.json({ token, rol: user.rol });
 };
+
+const geoip = require("geoip-lite");
+
+exports.verificarOtp = async (req, res, next) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!otpStore[email]) 
+      return res.status(400).json({ msg: "OTP no generado" });
+
+    if (Date.now() > otpStore[email].expires) {
+      delete otpStore[email];
+      return res.status(400).json({ msg: "OTP expirado" });
+    }
+
+    if (otp !== otpStore[email].otp.toString())
+      return res.status(400).json({ msg: "OTP incorrecto" });
+
+    const user = await Usuario.obtenerPorEmail(email);
+
+    const token = jwt.sign(
+      { id: user.id, email: user.email, rol: user.rol },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    const ip = req.headers["x-forwarded-for"] || req.connection.remoteAddress;
+    const geo = geoip.lookup(ip);
+
+    console.log("🔎 Login detectado:", {
+      usuario: email,
+      ip,
+      geo
+    });
+
+    // Aquí puedes guardar en BD un registro de inicio de sesión con ubicación
+    // await pool.query("INSERT INTO log_sesiones (usuario_id, ip, ubicacion) VALUES ($1,$2,$3)", [user.id, ip, JSON.stringify(geo)]);
+
+    delete otpStore[email];
+    res.json({ 
+      token, 
+      rol: user.rol, 
+      ubicacion: geo || "No disponible" 
+    });
+  } catch (err) {
+    next(err); // Pasar al manejador central de errores
+  }
+};

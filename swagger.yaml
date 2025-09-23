@@ -113,14 +113,9 @@ paths:
 
   /verificar-otp:
     post:
-      tags: [1️⃣ Autenticación 2FA]
-      summary: TC-AUTH-003: Verificación de código OTP
-      description: |
-        **Caso de prueba:** Validación correcta del código de verificación
-        
-        **Precondiciones:** OTP enviado al correo después del login
-        
-        **Flujo:** Login → Recibir OTP → Verificar OTP → Obtener token
+      tags: [Autenticación]
+      summary: Verificar código OTP
+      description: Validar código de autenticación de dos factores y registrar geolocalización del inicio de sesión
       requestBody:
         required: true
         content:
@@ -154,15 +149,27 @@ paths:
                   rol:
                     type: string
                     example: "admin"
-                  user:
+                  ubicacion:
                     type: object
+                    description: Datos de geolocalización aproximada del inicio de sesión
                     properties:
-                      id: 
-                        type: integer
-                      nombre:
+                      ip:
                         type: string
-                      email:
+                        example: "187.190.38.55"
+                      country:
                         type: string
+                        example: "MX"
+                      region:
+                        type: string
+                        example: "CMX"
+                      city:
+                        type: string
+                        example: "Ciudad de México"
+                      ll:
+                        type: array
+                        items:
+                          type: number
+                        example: [19.42847, -99.12766]
         '400':
           description: ❌ ERROR - OTP incorrecto o expirado
 
