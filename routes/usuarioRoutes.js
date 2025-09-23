@@ -17,6 +17,9 @@ router.post("/reset/:token", authController.restablecerPassword);
 module.exports = router;
 
 */
+
+//BUENO
+/*
 const express = require("express");
 const router = express.Router();
 const usuarioController = require("../controllers/usuarioController");
@@ -34,6 +37,28 @@ router.post("/reset/verificar-otp", authController.verificarOtp);
 router.post("/reset/:token", authController.restablecerPassword);
 
 // Rutas de usuarios
+router.get("/usuario", usuarioController.listarUsuarios);
+router.post("/usuario/nuevo", usuarioController.crearUsuario);
+
+module.exports = router;*/
+
+
+const express = require("express");
+const router = express.Router();
+const usuarioController = require("../controllers/usuarioController");
+const authController = require("../controllers/authController");
+
+// ==================== AUTENTICACIÓN ====================
+router.post("/login", usuarioController.loginUsuario);
+router.post("/verificar-otp", usuarioController.verificarOtp);
+
+// ==================== RECUPERACIÓN ====================
+router.post("/reset/usuario", authController.recuperarUsuario);
+router.post("/reset/enviar", authController.enviarEnlaceReset);
+router.post("/reset/verificar-otp", authController.verificarOtp);
+router.post("/reset/:token", authController.restablecerPassword);
+
+// ==================== GESTIÓN DE USUARIOS ====================
 router.get("/usuario", usuarioController.listarUsuarios);
 router.post("/usuario/nuevo", usuarioController.crearUsuario);
 
