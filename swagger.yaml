@@ -1,24 +1,233 @@
 openapi: 3.0.0
 info:
-  title: API Usuarios
+  title: API PWA Lacteos - Sistema de Autenticación
+  description: |
+    API para gestión de usuarios y autenticación con 2FA
+    - Autenticación de dos factores (2FA)
+    - Recuperación de contraseña y usuario
+    - Gestión de roles (Admin, Editor, Lector)
   version: 1.0.0
+  contact:
+    name: Soporte API
+    email: soporte@lacteos.com
 
 servers:
-  - url: http://localhost:3000
+  - url: http://localhost:3000/api
+    description: Servidor de desarrollo
+
+tags:
+  - name: Autenticación
+    description: Endpoints para login y 2FA
+  - name: Recuperación
+    description: Recuperación de contraseña y usuario
+  - name: Usuarios
+    description: Gestión de usuarios
 
 paths:
-  /api/usuario:
-    get:
-      summary: Obtener lista de usuarios
-      tags:
-        - Usuarios
+  # ========== AUTENTICACIÓN ==========
+  /login:
+    post:
+      tags: [Autenticación]
+      summary: Iniciar sesión con 2FA
+      description: Autenticación de usuario con verificación en dos pasos
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "admin@mail.com"
+                password:
+                  type: string
+                  example: "Password123!"
       responses:
-        "200":
-          description: Lista de usuarios obtenida correctamente
-        "404":
-          description: No se encontraron usuarios
-        "500":
-          description: Error interno del servidor
+        '200':
+          description: Código 2FA enviado al correo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  msg:
+                    type: string
+                    example: "Código 2FA enviado al correo"
+        '400':
+          description: Credenciales incorrectas
+        '500':
+          description: Error del servidor
+
+  /verificar-otp:
+    post:
+      tags: [Autenticación]
+      summary: Verificar código OTP
+      description: Validar código de autenticación de dos factores
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, otp]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "admin@mail.com"
+                otp:
+                  type: string
+                  example: "123456"
+      responses:
+        '200':
+          description: OTP verificado correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  rol:
+                    type: string
+                    example: "admin"
+        '400':
+          description: OTP incorrecto o expirado
+
+  # ========== RECUPERACIÓN ==========
+  /reset/usuario:
+    post:
+      tags: [Recuperación]
+      summary: Recuperar nombre de usuario
+      description: Envía el nombre de usuario al correo electrónico
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "admin@mail.com"
+      responses:
+        '200':
+          description: Usuario enviado al correo
+        '404':
+          description: Correo no registrado
+
+  /reset/enviar:
+    post:
+      tags: [Recuperación]
+      summary: Solicitar recuperación de contraseña
+      description: |
+        Envía enlace de recuperación (usuarios normales) 
+        o código OTP (administradores) según el rol
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "admin@mail.com"
+      responses:
+        '200':
+          description: Enlace/OTP enviado según el rol
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    properties:
+                      msg:
+                        type: string
+                        example: "Se envió un OTP adicional para administradores"
+                      token:
+                        type: string
+                        example: "abc123"
+                  - type: object
+                    properties:
+                      msg:
+                        type: string
+                        example: "Se envió un enlace para restablecer tu contraseña"
+
+  /reset/verificar-otp:
+    post:
+      tags: [Recuperación]
+      summary: Verificar OTP para administradores
+      description: Validar OTP en proceso de recuperación para admins
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, otp, token]
+              properties:
+                email:
+                  type: string
+                  format: email
+                otp:
+                  type: string
+                token:
+                  type: string
+      responses:
+        '200':
+          description: OTP verificado, enlace enviado
+        '400':
+          description: OTP incorrecto o expirado
+
+  /reset/{token}:
+    post:
+      tags: [Recuperación]
+      summary: Restablecer contraseña
+      description: Establecer nueva contraseña con token válido
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [newPassword]
+              properties:
+                newPassword:
+                  type: string
+                  description: |
+                    Mínimo 8 caracteres, 1 mayúscula, 1 minúscula, 
+                    1 número y 1 caracter especial
+                  example: "NuevaPass123!"
+      responses:
+        '200':
+          description: Contraseña actualizada correctamente
+        '400':
+          description: Token inválido o expirado
+
+  # ========== USUARIOS ==========
+  /usuario:
+    get:
+      tags: [Usuarios]
+      summary: Obtener lista de usuarios
+      description: Retorna todos los usuarios (requiere autenticación)
+      responses:
+        '200':
+          description: Lista de usuarios
           content:
             application/json:
               schema:
@@ -32,29 +241,63 @@ paths:
                       type: string
                     email:
                       type: string
+                    rol:
+                      type: string
+        '401':
+          description: No autorizado
 
-  /api/usuario/nuevo:
     post:
-      summary: Crear un nuevo usuario
-      tags:
-        - Usuarios
+      tags: [Usuarios]
+      summary: Crear nuevo usuario
+      description: Registrar nuevo usuario en el sistema
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
+              required: [nombre, email, password, rol]
               properties:
                 nombre:
                   type: string
+                  example: "Juan Pérez"
                 email:
                   type: string
+                  format: email
+                  example: "juan@mail.com"
                 password:
                   type: string
+                  example: "Password123!"
                 rol:
                   type: string
+                  enum: [admin, editor, lector]
+                  example: "lector"
       responses:
-        "201":
-          description: Usuario creado correctamente
-        "500":
-          description: Error en la petición
+        '201':
+          description: Usuario creado exitosamente
+        '400':
+          description: Datos inválidos
+
+components:
+  schemas:
+    Usuario:
+      type: object
+      properties:
+        id:
+          type: integer
+        nombre:
+          type: string
+        email:
+          type: string
+        rol:
+          type: string
+        creado_en:
+          type: string
+          format: date-time
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        msg:
+          type: string
