@@ -12,16 +12,26 @@ exports.recuperarUsuario = async (req, res) => {
   if (!user) return res.status(404).json({ msg: "Correo no registrado" });
 
   const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-  });
+  service: "gmail",
+  auth: { 
+    user: process.env.EMAIL_USER, 
+    pass: process.env.EMAIL_PASS 
+  },
+  tls: {
+    rejectUnauthorized: false // ⚠️ Solo para desarrollo
+  }
+});
+
 
   await transporter.sendMail({
     from: process.env.EMAIL_USER,
     to: email,
     subject: "Recuperación de usuario",
     text: `Hola, tu nombre de usuario es: ${user.nombre}`,
-  });
+   tls: {
+    rejectUnauthorized: false
+  }
+});
 
   res.json({ msg: "Tu nombre de usuario fue enviado al correo" });
 };
@@ -42,7 +52,10 @@ exports.enviarEnlaceReset = async (req, res) => {
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-    });
+     tls: {
+    rejectUnauthorized: false // ⚠️ Solo para desarrollo
+  }
+});
 
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
@@ -63,7 +76,10 @@ exports.enviarEnlaceReset = async (req, res) => {
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-  });
+  tls: {
+    rejectUnauthorized: false // ⚠️ Solo para desarrollo
+  }
+});
 
   await transporter.sendMail({
     from: process.env.EMAIL_USER,
@@ -122,7 +138,10 @@ exports.verificarOtp = async (req, res) => {
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-  });
+   tls: {
+    rejectUnauthorized: false // ⚠️ Solo para desarrollo
+  }
+});
 
   await transporter.sendMail({
     from: process.env.EMAIL_USER,

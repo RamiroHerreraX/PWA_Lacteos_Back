@@ -63,8 +63,11 @@ exports.loginUsuario = async (req, res) => {
     // Enviar OTP por email (configura tu servicio SMTP)
     const transporter = nodemailer.createTransport({
       service: "gmail",
-      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
-    });
+      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+    tls: {
+    rejectUnauthorized: false // ⚠️ Solo para desarrollo
+  }
+});
 
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
@@ -109,48 +112,75 @@ exports.verificarOtp = async (req, res) => {
 
 const geoip = require("geoip-lite");
 
+const pool = require("../config/db");
+
+const { obtenerUbicacionIP } = require("./geoip"); // ruta a geoip.js
+
 exports.verificarOtp = async (req, res, next) => {
   try {
     const { email, otp } = req.body;
 
-    if (!otpStore[email]) 
-      return res.status(400).json({ msg: "OTP no generado" });
-
+    // 1️⃣ Validar OTP
+    if (!otpStore[email]) return res.status(400).json({ msg: "OTP no generado" });
     if (Date.now() > otpStore[email].expires) {
       delete otpStore[email];
       return res.status(400).json({ msg: "OTP expirado" });
     }
+    if (otp !== otpStore[email].otp.toString()) return res.status(400).json({ msg: "OTP incorrecto" });
 
-    if (otp !== otpStore[email].otp.toString())
-      return res.status(400).json({ msg: "OTP incorrecto" });
-
+    // 2️⃣ Obtener usuario
     const user = await Usuario.obtenerPorEmail(email);
 
+    // 3️⃣ Generar token JWT
     const token = jwt.sign(
       { id: user.id, email: user.email, rol: user.rol },
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
 
-    const ip = req.headers["x-forwarded-for"] || req.connection.remoteAddress;
-    const geo = geoip.lookup(ip);
+    // 4️⃣ Obtener IP real del cliente
+    let ip = req.headers["x-forwarded-for"] || req.connection.remoteAddress;
+    if (ip && ip.includes(",")) ip = ip.split(",")[0].trim();
 
-    console.log("🔎 Login detectado:", {
-      usuario: email,
-      ip,
-      geo
-    });
+    // Detectar localhost y usar IP de prueba de México
+    let esLocalhost = false;
+    if (ip === "::1" || ip === "127.0.0.1" || !ip) {
+      esLocalhost = true;
+      ip = "189.204.0.0"; // IP pública de prueba de México
+    }
 
-    // Aquí puedes guardar en BD un registro de inicio de sesión con ubicación
-    // await pool.query("INSERT INTO log_sesiones (usuario_id, ip, ubicacion) VALUES ($1,$2,$3)", [user.id, ip, JSON.stringify(geo)]);
+    // 5️⃣ Obtener ubicación usando IPinfo
+    let ubicacion = ip ? await obtenerUbicacionIP(ip) : null;
 
+    // 6️⃣ Si no se obtiene ubicación (localhost), poner coordenadas de CDMX
+    if (!ubicacion && esLocalhost) {
+      ubicacion = {
+        ip: ip,
+        country: "MX",
+        region: "CMX",
+        city: "Ciudad de México",
+        ll: [19.42847, -99.12766],
+        timezone: "America/Mexico_City"
+      };
+    }
+
+    // 7️⃣ Guardar sesión en la tabla "sesion"
+    await pool.query(
+      `INSERT INTO sesion (usuario_id, ip, ubicacion, fecha) VALUES ($1, $2, $3, NOW())`,
+      [user.id, ip, ubicacion ? JSON.stringify(ubicacion) : null]
+    );
+
+    // 8️⃣ Limpiar OTP
     delete otpStore[email];
-    res.json({ 
-      token, 
-      rol: user.rol, 
-      ubicacion: geo || "No disponible" 
+
+    // 9️⃣ Responder con token, rol y ubicación
+    res.json({
+      token,
+      rol: user.rol,
+      ubicacion: ubicacion || "No disponible"
     });
+
   } catch (err) {
-    next(err); // Pasar al manejador central de errores
+    next(err);
   }
 };
