@@ -5,6 +5,7 @@ const speakeasy = require("speakeasy");
 const nodemailer = require("nodemailer");
 const fs = require("fs");
 const path = require("path");
+const geoip = require("geoip-lite");
 
 const { userActivity } = require("../middlewares/verificarActividad");
 
@@ -151,39 +152,58 @@ exports.loginOffUsuario = async (req, res) => {
   }
 };
 
-// --- Verificar OTP ---
-exports.verificarOtp = async (req, res) => {
-  const { email, otp } = req.body;
-
-  if (!otpStore[email]) return res.status(400).json({ msg: "OTP no generado" });
-
-  if (Date.now() > otpStore[email].expires) {
-    delete otpStore[email];
-    return res.status(400).json({ msg: "OTP expirado" });
-  }
-
-  if (otp !== otpStore[email].otp.toString())
-    return res.status(400).json({ msg: "OTP incorrecto" });
-
-  let user;
+exports.verificarOtp = async (req, res, next) => {
   try {
-    user = await Usuario.obtenerPorEmail(email);
-  } catch {
-    // Buscar en offline si no hay internet
-    const usuariosOffline = leerOffline();
-    user = usuariosOffline.find(u => u.email === email);
-  }
+    const { email, otp } = req.body;
 
-  if (!user) return res.status(400).json({ msg: "Usuario no encontrado" });
+    if (!otpStore[email]) 
+      return res.status(400).json({ msg: "OTP no generado" });
 
-  const token = jwt.sign(
-    { id: user.id, email: user.email, rol: user.rol },
-    process.env.JWT_SECRET,
-    { expiresIn: "1h" }
-  );
+    if (Date.now() > otpStore[email].expires) {
+      delete otpStore[email];
+      return res.status(400).json({ msg: "OTP expirado" });
+    }
+
+    if (otp !== otpStore[email].otp.toString())
+      return res.status(400).json({ msg: "OTP incorrecto" });
+
+    let user;
+    try {
+      user = await Usuario.obtenerPorEmail(email);
+    } catch {
+      // Buscar en offline si no hay internet
+      const usuariosOffline = leerOffline();
+      user = usuariosOffline.find(u => u.email === email);
+    }
+
+    if (!user) return res.status(400).json({ msg: "Usuario no encontrado" });
+
+    const token = jwt.sign(
+      { id: user.id, email: user.email, rol: user.rol },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    const ip = req.headers["x-forwarded-for"] || req.connection.remoteAddress;
+    const geo = geoip.lookup(ip);
+
+    console.log("🔎 Login detectado:", {
+      usuario: email,
+      ip,
+      geo
+    });
+
+    // Aquí puedes guardar en BD un registro de inicio de sesión con ubicación
+    // await pool.query("INSERT INTO log_sesiones (usuario_id, ip, ubicacion) VALUES ($1,$2,$3)", [user.id, ip, JSON.stringify(geo)]);
 
     userActivity[user.email] = Date.now();
-  delete otpStore[email];
-  res.json({ token, rol: user.rol });
+    delete otpStore[email];
+    res.json({ 
+      token, 
+      rol: user.rol, 
+      ubicacion: geo || "No disponible" 
+    });
+  } catch (err) {
+    next(err); // Pasar al manejador central de errores
+  }
 };
-

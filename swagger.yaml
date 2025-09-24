@@ -1,35 +1,65 @@
 openapi: 3.0.0
 info:
-  title: API PWA Lacteos - Sistema de Autenticación
+  title: 🎯 PWA Lacteos - API Documentation & Testing Matrix
   description: |
-    API para gestión de usuarios y autenticación con 2FA
-    - Autenticación de dos factores (2FA)
-    - Recuperación de contraseña y usuario
-    - Gestión de roles (Admin, Editor, Lector)
+    # Sistema de Gestión de Usuarios con Autenticación 2FA
+    ## Descripción General
+    
+    ## 📋 Matriz de Pruebas Integrada
+    
+    Esta documentación sirve como herramienta para ejecutar la matriz de pruebas del sistema.
+    
+    ### Funcionalidades a probar:
+    - ✅ Autenticación con verificación en dos factores (2FA)
+    - ✅ Recuperación de usuario y contraseña por roles
+    - ✅ Gestión de usuarios (Admin, Editor, Lector)
+    - ✅ Validación de seguridad y roles
+    
+    ### Usuarios de prueba:
+    - **Admin**: admin@mail.com / Admin123!
+    - **Editor**: editor@mail.com / Editor123!  
+    - **Lector**: lector@mail.com / Lector123!
+    
+    ### Flujos de prueba:
+    1. Autenticación → 2FA → Acceso
+    2. Recuperación → OTP → Restablecimiento
+    3. CRUD usuarios según rol
   version: 1.0.0
   contact:
-    name: Soporte API
-    email: soporte@lacteos.com
+    name: Equipo de Desarrollo
+    email: desarrollo@lacteos.com
 
 servers:
   - url: http://localhost:3000/api
-    description: Servidor de desarrollo
+    description: 🧪 Servidor de Desarrollo y Pruebas
 
 tags:
-  - name: Autenticación
-    description: Endpoints para login y 2FA
-  - name: Recuperación
-    description: Recuperación de contraseña y usuario
-  - name: Usuarios
-    description: Gestión de usuarios
+  - name: 1️⃣ Autenticación 2FA
+    description: Pruebas de login y verificación en dos factores
+  - name: 2️⃣ Recuperación de Acceso
+    description: Pruebas de recuperación por roles (HU-02)
+  - name: 3️⃣ Gestión de Usuarios
+    description: Pruebas CRUD según roles de usuario
+  - name: 🧪 Matriz de Pruebas
+    description: Ejecución guiada de casos de prueba
 
 paths:
-  # ========== AUTENTICACIÓN ==========
+  # ==================== 1️⃣ AUTENTICACIÓN 2FA ====================
   /login:
     post:
-      tags: [Autenticación]
-      summary: Iniciar sesión con 2FA
-      description: Autenticación de usuario con verificación en dos pasos
+      tags: [1️⃣ Autenticación 2FA]
+      summary: TC-AUTH-001: Login con credenciales válidas + 2FA
+      description: |
+        **Caso de prueba:** Autenticación exitosa con verificación en dos factores
+        
+        **Precondiciones:** Usuario registrado en BD
+        
+        **Datos de prueba:**
+        - Admin: email: admin@mail.com, password: Admin123!
+        - Editor: email: editor@mail.com, password: Editor123!
+        - Lector: email: lector@mail.com, password: Lector123!
+        
+        **Resultado esperado:** 200 OK + mensaje de OTP enviado
       requestBody:
         required: true
         content:
@@ -42,30 +72,51 @@ paths:
                   type: string
                   format: email
                   example: "admin@mail.com"
+                  description: Email del usuario registrado
                 password:
                   type: string
-                  example: "Password123!"
+                  example: "Admin123!"
+                  description: Contraseña válida
+            examples:
+              admin:
+                summary: Credenciales Admin
+                value:
+                  email: "admin@mail.com"
+                  password: "Admin123!"
+              editor:
+                summary: Credenciales Editor  
+                value:
+                  email: "editor@mail.com"
+                  password: "Editor123!"
+              lector:
+                summary: Credenciales Lector
+                value:
+                  email: "lector@mail.com"
+                  password: "Lector123!"
       responses:
         '200':
-          description: Código 2FA enviado al correo
+          description: ✅ ÉXITO - Código 2FA enviado al correo
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  msg:
+                  message:
                     type: string
                     example: "Código 2FA enviado al correo"
+                  otp:
+                    type: string
+                    description: "Solo en desarrollo - código para pruebas"
         '400':
-          description: Credenciales incorrectas
+          description: ❌ ERROR - Credenciales incorrectas
         '500':
-          description: Error del servidor
+          description: ⚠️ ERROR - Problema en el servidor
 
   /verificar-otp:
     post:
       tags: [Autenticación]
       summary: Verificar código OTP
-      description: Validar código de autenticación de dos factores
+      description: Validar código de autenticación de dos factores y registrar geolocalización del inicio de sesión
       requestBody:
         required: true
         content:
@@ -81,29 +132,59 @@ paths:
                 otp:
                   type: string
                   example: "123456"
+                  description: "En desarrollo, revisa la consola del servidor para el código"
       responses:
         '200':
-          description: OTP verificado correctamente
+          description: ✅ ÉXITO - Autenticación completada
           content:
             application/json:
               schema:
                 type: object
                 properties:
+                  message:
+                    type: string
+                    example: "Autenticación exitosa"
                   token:
                     type: string
                     example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                   rol:
                     type: string
                     example: "admin"
+                  ubicacion:
+                    type: object
+                    description: Datos de geolocalización aproximada del inicio de sesión
+                    properties:
+                      ip:
+                        type: string
+                        example: "187.190.38.55"
+                      country:
+                        type: string
+                        example: "MX"
+                      region:
+                        type: string
+                        example: "CMX"
+                      city:
+                        type: string
+                        example: "Ciudad de México"
+                      ll:
+                        type: array
+                        items:
+                          type: number
+                        example: [19.42847, -99.12766]
         '400':
-          description: OTP incorrecto o expirado
+          description: ❌ ERROR - OTP incorrecto o expirado
 
-  # ========== RECUPERACIÓN ==========
+  # ==================== 2️⃣ RECUPERACIÓN DE ACCESO ====================
   /reset/usuario:
     post:
-      tags: [Recuperación]
-      summary: Recuperar nombre de usuario
-      description: Envía el nombre de usuario al correo electrónico
+      tags: [2️⃣ Recuperación de Acceso]
+      summary: TC-REC-001: Recuperar nombre de usuario
+      description: |
+        **Caso de prueba:** Recuperación exitosa de nombre de usuario
+        
+        **HU-02:** Permite a usuarios recuperar acceso a su cuenta
+        
+        **Flujo:** Ingresar email → Recibir usuario por correo
       requestBody:
         required: true
         content:
@@ -118,17 +199,22 @@ paths:
                   example: "admin@mail.com"
       responses:
         '200':
-          description: Usuario enviado al correo
+          description: ✅ ÉXITO - Usuario enviado al correo
         '404':
-          description: Correo no registrado
+          description: ❌ ERROR - Correo no registrado
 
   /reset/enviar:
     post:
-      tags: [Recuperación]
-      summary: Solicitar recuperación de contraseña
+      tags: [2️⃣ Recuperación de Acceso]
+      summary: TC-REC-003/004: Solicitar recuperación de contraseña
       description: |
-        Envía enlace de recuperación (usuarios normales) 
-        o código OTP (administradores) según el rol
+        **Caso de prueba:** Envío de enlace/OTP según rol
+        
+        **Comportamiento por rol:**
+        - Admin: Recibe OTP adicional (flujo reforzado)
+        - Editor/Lector: Recibe enlace directo
+        
+        **Validar gestión de roles y seguridad**
       requestBody:
         required: true
         content:
@@ -141,32 +227,48 @@ paths:
                   type: string
                   format: email
                   example: "admin@mail.com"
+            examples:
+              admin:
+                summary: Usuario Admin
+                value:
+                  email: "admin@mail.com"
+              editor:
+                summary: Usuario Editor
+                value:
+                  email: "editor@mail.com"
+              lector:
+                summary: Usuario Lector  
+                value:
+                  email: "lector@mail.com"
       responses:
         '200':
-          description: Enlace/OTP enviado según el rol
+          description: ✅ ÉXITO - Proceso iniciado según rol
           content:
             application/json:
               schema:
                 oneOf:
                   - type: object
                     properties:
-                      msg:
+                      message:
                         type: string
                         example: "Se envió un OTP adicional para administradores"
                       token:
                         type: string
-                        example: "abc123"
+                        description: "Token para verificación OTP"
                   - type: object
                     properties:
-                      msg:
+                      message:
                         type: string
                         example: "Se envió un enlace para restablecer tu contraseña"
 
   /reset/verificar-otp:
     post:
-      tags: [Recuperación]
-      summary: Verificar OTP para administradores
-      description: Validar OTP en proceso de recuperación para admins
+      tags: [2️⃣ Recuperación de Acceso]
+      summary: TC-REC-005: Verificar OTP para administradores
+      description: |
+        **Caso de prueba:** Verificación OTP en recuperación de admin
+        
+        **Seguridad:** Validación adicional para roles administrativos
       requestBody:
         required: true
         content:
@@ -178,78 +280,53 @@ paths:
                 email:
                   type: string
                   format: email
+                  example: "admin@mail.com"
                 otp:
                   type: string
+                  example: "123456"
                 token:
                   type: string
+                  example: "token_recibido_en_el_paso_anterior"
       responses:
         '200':
-          description: OTP verificado, enlace enviado
+          description: ✅ ÉXITO - OTP verificado, enlace enviado
         '400':
-          description: OTP incorrecto o expirado
+          description: ❌ ERROR - OTP incorrecto o expirado
 
-  /reset/{token}:
-    post:
-      tags: [Recuperación]
-      summary: Restablecer contraseña
-      description: Establecer nueva contraseña con token válido
-      parameters:
-        - name: token
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [newPassword]
-              properties:
-                newPassword:
-                  type: string
-                  description: |
-                    Mínimo 8 caracteres, 1 mayúscula, 1 minúscula, 
-                    1 número y 1 caracter especial
-                  example: "NuevaPass123!"
-      responses:
-        '200':
-          description: Contraseña actualizada correctamente
-        '400':
-          description: Token inválido o expirado
-
-  # ========== USUARIOS ==========
+  # ==================== 3️⃣ GESTIÓN DE USUARIOS ====================
   /usuario:
     get:
-      tags: [Usuarios]
-      summary: Obtener lista de usuarios
-      description: Retorna todos los usuarios (requiere autenticación)
+      tags: [3️⃣ Gestión de Usuarios]
+      summary: TC-USR-001/002/003: Listar usuarios (todos los roles)
+      description: |
+        **Caso de prueba:** Listado de usuarios según permisos de rol
+        
+        **Validar:** Todos los roles pueden ver la lista de usuarios
       responses:
         '200':
-          description: Lista de usuarios
+          description: ✅ ÉXITO - Lista de usuarios obtenida
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  type: object
-                  properties:
-                    id:
-                      type: integer
-                    nombre:
-                      type: string
-                    email:
-                      type: string
-                    rol:
-                      type: string
-        '401':
-          description: No autorizado
+                  $ref: '#/components/schemas/Usuario'
+        '500':
+          description: ❌ ERROR - Problema en el servidor
 
+  /usuario/nuevo:
     post:
-      tags: [Usuarios]
-      summary: Crear nuevo usuario
-      description: Registrar nuevo usuario en el sistema
+      tags: [3️⃣ Gestión de Usuarios]
+      summary: TC-USR-004: Crear nuevo usuario (solo Admin)
+      description: |
+        **Caso de prueba:** Creación de usuario exitosa
+        
+        **Permisos:** Solo usuarios con rol 'admin' pueden crear usuarios
+        
+        **Validaciones:**
+        - Email válido y único
+        - Contraseña segura (8+ chars, mayúscula, minúscula, número, especial)
+        - Rol válido (admin, editor, lector)
       requestBody:
         required: true
         content:
@@ -261,22 +338,26 @@ paths:
                 nombre:
                   type: string
                   example: "Juan Pérez"
+                  minLength: 2
                 email:
                   type: string
                   format: email
-                  example: "juan@mail.com"
+                  example: "nuevo@mail.com"
                 password:
                   type: string
-                  example: "Password123!"
+                  example: "NuevaPass123!"
+                  description: "Mínimo 8 caracteres, 1 mayúscula, 1 minúscula, 1 número, 1 especial"
                 rol:
                   type: string
                   enum: [admin, editor, lector]
                   example: "lector"
       responses:
         '201':
-          description: Usuario creado exitosamente
+          description: ✅ ÉXITO - Usuario creado exitosamente
         '400':
-          description: Datos inválidos
+          description: ❌ ERROR - Datos inválidos o email duplicado
+        '403':
+          description: ⚠️ DENEGADO - Sin permisos de administrador
 
 components:
   schemas:
@@ -285,19 +366,34 @@ components:
       properties:
         id:
           type: integer
+          example: 1
         nombre:
           type: string
+          example: "Admin User"
         email:
           type: string
+          example: "admin@mail.com"
         rol:
           type: string
+          example: "admin"
         creado_en:
           type: string
           format: date-time
+          example: "2024-01-15T10:30:00Z"
     Error:
       type: object
       properties:
         error:
           type: string
-        msg:
+          example: "Error descriptivo"
+        message:
           type: string
+          example: "Mensaje detallado del error"
+
+  responses:
+    Unauthorized:
+      description: Token de acceso faltante o inválido
+    Forbidden:
+      description: No tiene permisos para esta acción
+
+
