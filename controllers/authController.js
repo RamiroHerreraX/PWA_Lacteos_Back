@@ -177,9 +177,32 @@ exports.verificarOtp = async (req, res) => {
 
   // OTP correcto: generar token de reset final
   const resetToken = crypto.randomBytes(32).toString("hex");
-  guardarOfflineResets(resets.filter(r => r.token !== token)); // eliminar usado
+  const newResets = resets.filter(r => r.token !== token); // eliminar token OTP usado
+  newResets.push({ email, token: resetToken, expires: Date.now() + 15*60*1000 }); // guardar token final
+  guardarOfflineResets(newResets);
 
   const resetUrl = `http://localhost:4200/reset/${resetToken}`;
+
+  // Intentar enviar correo con el enlace final (solo si estamos online)
+  try {
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+      tls: { rejectUnauthorized: false }
+    });
+
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Enlace final para restablecer contraseña",
+      html: `<p>Tu OTP fue verificado correctamente.</p>
+             <p>Haz clic en el siguiente enlace para restablecer tu contraseña:</p>
+             <a href="${resetUrl}">${resetUrl}</a>`
+    });
+  } catch (err) {
+    console.warn("No se pudo enviar correo con enlace final:", err.message);
+  }
+
   res.json({
     msg: "OTP verificado correctamente. Usa este enlace para restablecer la contraseña",
     resetToken,
