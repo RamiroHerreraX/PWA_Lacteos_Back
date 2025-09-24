@@ -33,6 +33,9 @@ servers:
   - url: http://localhost:3000/api
     description: 🧪 Servidor de Desarrollo y Pruebas
 
+security:
+  - bearerAuth: []
+
 tags:
   - name: 1️⃣ Autenticación 2FA
     description: Pruebas de login y verificación en dos factores
@@ -47,6 +50,7 @@ paths:
   # ==================== 1️⃣ AUTENTICACIÓN 2FA ====================
   /login:
     post:
+      security: [] 
       tags: [1️⃣ Autenticación 2FA]
       summary: TC-AUTH-001: Login con credenciales válidas + 2FA
       description: |
@@ -114,6 +118,7 @@ paths:
 
   /verificar-otp:
     post:
+      security: [] 
       tags: [Autenticación]
       summary: Verificar código OTP
       description: Validar código de autenticación de dos factores y registrar geolocalización del inicio de sesión
@@ -360,6 +365,11 @@ paths:
           description: ⚠️ DENEGADO - Sin permisos de administrador
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
   schemas:
     Usuario:
       type: object

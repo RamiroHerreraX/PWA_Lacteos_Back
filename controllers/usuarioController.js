@@ -155,8 +155,6 @@ exports.loginOffUsuario = async (req, res) => {
   }
 };
 
-const geoip = require("geoip-lite");
-
 const pool = require("../config/db");
 
 const { obtenerUbicacionIP } = require("./geoip"); // ruta a geoip.js
@@ -213,6 +211,11 @@ exports.verificarOtp = async (req, res, next) => {
       `INSERT INTO sesion (usuario_id, ip, ubicacion, fecha) VALUES ($1, $2, $3, NOW())`,
       [user.id, ip, ubicacion ? JSON.stringify(ubicacion) : null]
     );
+    
+    userActivity[user.email] = {
+    lastActive: Date.now(),
+    token // guardamos el JWT
+    };
 
     // 8️⃣ Limpiar OTP
     delete otpStore[email];

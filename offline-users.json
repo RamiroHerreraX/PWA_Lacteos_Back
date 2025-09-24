@@ -40,5 +40,19 @@
     "email": "mariana@gmail.com",
     "password": "$2b$10$4JwP.Ggk7BkocrhyUxT2Pe1VcLgKOq7MLsh0GWP7eVz6Y4rzqbrbq",
     "rol": "lector"
+  },
+  {
+    "id": 17,
+    "nombre": "Juan Pérez",
+    "email": "nuevo@mail.com",
+    "password": "$2b$10$UhxjrKieRzmUDDxAYtE4guux/earY5tLXe1Ems3o1XCFF3/rF1IXu",
+    "rol": "lector"
+  },
+  {
+    "id": 18,
+    "nombre": "Juan Antonio",
+    "email": "antonio@mail.com",
+    "password": "$2b$10$8vUDHjOkldM4aOnYgzOzoe3IKdj1xFZPGIALbN.Sba/iIC81ftaf.",
+    "rol": "editor"
   }
 ]
