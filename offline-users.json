@@ -3,7 +3,7 @@
     "id": 1,
     "nombre": "Roxana",
     "email": "roxana.ort100@gmail.com",
-    "password": "$2b$10$utst/JwGVLMYb03/d9oKIu/GY3QgRexssQlmr9bKjASMwlron6ioe",
+    "password": "$2b$10$fZJ2vtE1DDxcdsjRMeRy7esAMuPHxY0bJ2v2EvUmeQNEutydwGe.2",
     "rol": "admin"
   },
   {
@@ -17,7 +17,7 @@
     "id": 9,
     "nombre": "Roman",
     "email": "proveedorsurtirama0@gmail.com",
-    "password": "$2b$10$IyXNVdTaOYWBL3XY0wIcMOEmh7YJC8PMJO.11XYCp3xe3r0af/4le",
+    "password": "$2b$10$DMiUS5QlTN207uN4WgQctOzOeUUOQIiiCR/Yj1mWJgtH2GXoXhY06",
     "rol": "editor"
   },
   {
@@ -47,12 +47,5 @@
     "email": "antonio@mail.com",
     "password": "$2b$10$8vUDHjOkldM4aOnYgzOzoe3IKdj1xFZPGIALbN.Sba/iIC81ftaf.",
     "rol": "editor"
-  },
-  {
-    "id": 2,
-    "nombre": "Alejandra",
-    "email": "alegalvanmay@gmail.com",
-    "password": "$2b$10$GGBmxRpoE5j4j6yWQHZkne4ypqhdKB48e/vND7Byy60SI4XfTeQ9.",
-    "rol": "lector"
   }
 ]
