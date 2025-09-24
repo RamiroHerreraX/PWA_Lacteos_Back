@@ -47,6 +47,8 @@ const express = require("express");
 const router = express.Router();
 const usuarioController = require("../controllers/usuarioController");
 const authController = require("../controllers/authController");
+const { verificarActividad } = require("../middlewares/verificarActividad");
+
 
 // ==================== AUTENTICACIÓN ====================
 router.post("/login", usuarioController.loginUsuario);
@@ -59,7 +61,7 @@ router.post("/reset/verificar-otp", authController.verificarOtp);
 router.post("/reset/:token", authController.restablecerPassword);
 
 // ==================== GESTIÓN DE USUARIOS ====================
-router.get("/usuario", usuarioController.listarUsuarios);
-router.post("/usuario/nuevo", usuarioController.crearUsuario);
+router.get("/usuario", verificarActividad, usuarioController.listarUsuarios);
+router.post("/usuario/nuevo", verificarActividad, usuarioController.crearUsuario);
 
 module.exports = router;

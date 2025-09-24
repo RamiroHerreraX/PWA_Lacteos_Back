@@ -19,5 +19,26 @@
     "email": "proveedorsurtirama0@gmail.com",
     "password": "$2b$10$IyXNVdTaOYWBL3XY0wIcMOEmh7YJC8PMJO.11XYCp3xe3r0af/4le",
     "rol": "editor"
+  },
+  {
+    "id": 12,
+    "nombre": "Luis",
+    "email": "rox.renteria1234@gmail.com",
+    "password": "$2b$10$OWuhymnry9CiQvdZtAPUcuTUAEmzbSMhjffgLozK3.cgj9xSUh2Pi",
+    "rol": "lector"
+  },
+  {
+    "id": 13,
+    "nombre": "Alejandra",
+    "email": "alejandra.glv.gg@gmail.com",
+    "password": "$2b$10$JDnVF..O.N3c9v/rlz27BOjuypMN8.cKvayOcrIr.Opk3VZNV9xp2",
+    "rol": "admin"
+  },
+  {
+    "id": 16,
+    "nombre": "Mariana",
+    "email": "mariana@gmail.com",
+    "password": "$2b$10$4JwP.Ggk7BkocrhyUxT2Pe1VcLgKOq7MLsh0GWP7eVz6Y4rzqbrbq",
+    "rol": "lector"
   }
 ]
