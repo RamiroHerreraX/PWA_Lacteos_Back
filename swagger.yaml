@@ -55,15 +55,6 @@ paths:
       summary: TC-AUTH-001: Login con credenciales válidas + 2FA
       description: |
         **Caso de prueba:** Autenticación exitosa con verificación en dos factores
-        
-        **Precondiciones:** Usuario registrado en BD
-        
-        **Datos de prueba:**
-        - Admin: email: admin@mail.com, password: Admin123!
-        - Editor: email: editor@mail.com, password: Editor123!
-        - Lector: email: lector@mail.com, password: Lector123!
-        
-        **Resultado esperado:** 200 OK + mensaje de OTP enviado
       requestBody:
         required: true
         content:
@@ -76,41 +67,12 @@ paths:
                   type: string
                   format: email
                   example: "admin@mail.com"
-                  description: Email del usuario registrado
                 password:
                   type: string
                   example: "Admin123!"
-                  description: Contraseña válida
-            examples:
-              admin:
-                summary: Credenciales Admin
-                value:
-                  email: "admin@mail.com"
-                  password: "Admin123!"
-              editor:
-                summary: Credenciales Editor  
-                value:
-                  email: "editor@mail.com"
-                  password: "Editor123!"
-              lector:
-                summary: Credenciales Lector
-                value:
-                  email: "lector@mail.com"
-                  password: "Lector123!"
       responses:
         '200':
           description: ✅ ÉXITO - Código 2FA enviado al correo
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Código 2FA enviado al correo"
-                  otp:
-                    type: string
-                    description: "Solo en desarrollo - código para pruebas"
         '400':
           description: ❌ ERROR - Credenciales incorrectas
         '500':
@@ -118,10 +80,12 @@ paths:
 
   /verificar-otp:
     post:
+      tags: [1️⃣ Autenticación 2FA]
+
       security: [] 
       tags: [Autenticación]
       summary: Verificar código OTP
-      description: Validar código de autenticación de dos factores y registrar geolocalización del inicio de sesión
+      description: Validar OTP y registrar geolocalización del inicio de sesión
       requestBody:
         required: true
         content:
@@ -132,12 +96,10 @@ paths:
               properties:
                 email:
                   type: string
-                  format: email
                   example: "admin@mail.com"
                 otp:
                   type: string
                   example: "123456"
-                  description: "En desarrollo, revisa la consola del servidor para el código"
       responses:
         '200':
           description: ✅ ÉXITO - Autenticación completada
@@ -146,18 +108,12 @@ paths:
               schema:
                 type: object
                 properties:
-                  message:
-                    type: string
-                    example: "Autenticación exitosa"
                   token:
                     type: string
-                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                   rol:
                     type: string
-                    example: "admin"
                   ubicacion:
                     type: object
-                    description: Datos de geolocalización aproximada del inicio de sesión
                     properties:
                       ip:
                         type: string
@@ -165,9 +121,6 @@ paths:
                       country:
                         type: string
                         example: "MX"
-                      region:
-                        type: string
-                        example: "CMX"
                       city:
                         type: string
                         example: "Ciudad de México"
@@ -184,24 +137,6 @@ paths:
     post:
       tags: [2️⃣ Recuperación de Acceso]
       summary: TC-REC-001: Recuperar nombre de usuario
-      description: |
-        **Caso de prueba:** Recuperación exitosa de nombre de usuario
-        
-        **HU-02:** Permite a usuarios recuperar acceso a su cuenta
-        
-        **Flujo:** Ingresar email → Recibir usuario por correo
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [email]
-              properties:
-                email:
-                  type: string
-                  format: email
-                  example: "admin@mail.com"
       responses:
         '200':
           description: ✅ ÉXITO - Usuario enviado al correo
@@ -212,89 +147,17 @@ paths:
     post:
       tags: [2️⃣ Recuperación de Acceso]
       summary: TC-REC-003/004: Solicitar recuperación de contraseña
-      description: |
-        **Caso de prueba:** Envío de enlace/OTP según rol
-        
-        **Comportamiento por rol:**
-        - Admin: Recibe OTP adicional (flujo reforzado)
-        - Editor/Lector: Recibe enlace directo
-        
-        **Validar gestión de roles y seguridad**
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [email]
-              properties:
-                email:
-                  type: string
-                  format: email
-                  example: "admin@mail.com"
-            examples:
-              admin:
-                summary: Usuario Admin
-                value:
-                  email: "admin@mail.com"
-              editor:
-                summary: Usuario Editor
-                value:
-                  email: "editor@mail.com"
-              lector:
-                summary: Usuario Lector  
-                value:
-                  email: "lector@mail.com"
       responses:
         '200':
           description: ✅ ÉXITO - Proceso iniciado según rol
-          content:
-            application/json:
-              schema:
-                oneOf:
-                  - type: object
-                    properties:
-                      message:
-                        type: string
-                        example: "Se envió un OTP adicional para administradores"
-                      token:
-                        type: string
-                        description: "Token para verificación OTP"
-                  - type: object
-                    properties:
-                      message:
-                        type: string
-                        example: "Se envió un enlace para restablecer tu contraseña"
 
   /reset/verificar-otp:
     post:
       tags: [2️⃣ Recuperación de Acceso]
       summary: TC-REC-005: Verificar OTP para administradores
-      description: |
-        **Caso de prueba:** Verificación OTP en recuperación de admin
-        
-        **Seguridad:** Validación adicional para roles administrativos
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [email, otp, token]
-              properties:
-                email:
-                  type: string
-                  format: email
-                  example: "admin@mail.com"
-                otp:
-                  type: string
-                  example: "123456"
-                token:
-                  type: string
-                  example: "token_recibido_en_el_paso_anterior"
       responses:
         '200':
-          description: ✅ ÉXITO - OTP verificado, enlace enviado
+          description: ✅ ÉXITO - OTP verificado
         '400':
           description: ❌ ERROR - OTP incorrecto o expirado
 
@@ -302,20 +165,10 @@ paths:
   /usuario:
     get:
       tags: [3️⃣ Gestión de Usuarios]
-      summary: TC-USR-001/002/003: Listar usuarios (todos los roles)
-      description: |
-        **Caso de prueba:** Listado de usuarios según permisos de rol
-        
-        **Validar:** Todos los roles pueden ver la lista de usuarios
+      summary: TC-USR-001/002/003: Listar usuarios
       responses:
         '200':
           description: ✅ ÉXITO - Lista de usuarios obtenida
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Usuario'
         '500':
           description: ❌ ERROR - Problema en el servidor
 
@@ -323,46 +176,57 @@ paths:
     post:
       tags: [3️⃣ Gestión de Usuarios]
       summary: TC-USR-004: Crear nuevo usuario (solo Admin)
-      description: |
-        **Caso de prueba:** Creación de usuario exitosa
-        
-        **Permisos:** Solo usuarios con rol 'admin' pueden crear usuarios
-        
-        **Validaciones:**
-        - Email válido y único
-        - Contraseña segura (8+ chars, mayúscula, minúscula, número, especial)
-        - Rol válido (admin, editor, lector)
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [nombre, email, password, rol]
-              properties:
-                nombre:
-                  type: string
-                  example: "Juan Pérez"
-                  minLength: 2
-                email:
-                  type: string
-                  format: email
-                  example: "nuevo@mail.com"
-                password:
-                  type: string
-                  example: "NuevaPass123!"
-                  description: "Mínimo 8 caracteres, 1 mayúscula, 1 minúscula, 1 número, 1 especial"
-                rol:
-                  type: string
-                  enum: [admin, editor, lector]
-                  example: "lector"
       responses:
         '201':
           description: ✅ ÉXITO - Usuario creado exitosamente
         '400':
-          description: ❌ ERROR - Datos inválidos o email duplicado
+          description: ❌ ERROR - Datos inválidos
         '403':
-          description: ⚠️ DENEGADO - Sin permisos de administrador
+          description: ⚠️ DENEGADO - Sin permisos
+
+  # ==================== 📌 HISTORIAL DE SESIONES ====================
+  /usuario/sesiones:
+    get:
+      tags: [3️⃣ Gestión de Usuarios]
+      summary: Consultar historial de sesiones del usuario autenticado
+      description: Devuelve todas las sesiones registradas del usuario con IP, ubicación y fecha
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: ✅ ÉXITO - Lista de sesiones
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      example: 1
+                    usuario_id:
+                      type: integer
+                      example: 5
+                    ip:
+                      type: string
+                      example: "187.204.120.45"
+                    ubicacion:
+                      type: object
+                      example:
+                        country: "MX"
+                        city: "CDMX"
+                        ll: [19.4326, -99.1332]
+                    fecha:
+                      type: string
+                      format: date-time
+                      example: "2025-09-24T03:42:16Z"
+        '401':
+          description: ❌ Token requerido
+        '403':
+          description: ❌ Token inválido
+        '404':
+          description: ❌ No hay historial de sesiones
 
 components:
   securitySchemes:
@@ -390,20 +254,9 @@ components:
           type: string
           format: date-time
           example: "2024-01-15T10:30:00Z"
-    Error:
-      type: object
-      properties:
-        error:
-          type: string
-          example: "Error descriptivo"
-        message:
-          type: string
-          example: "Mensaje detallado del error"
 
   responses:
     Unauthorized:
       description: Token de acceso faltante o inválido
     Forbidden:
       description: No tiene permisos para esta acción
-
-

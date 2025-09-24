@@ -4,6 +4,7 @@ const path = require("path");
 const swaggerUi = require("swagger-ui-express");
 const YAML = require("yamljs");
 const usuarioRoutes = require("./routes/usuarioRoutes");
+const sesionRoutes = require("./routes/sesionRoutes");
 require("dotenv").config();
 
 const app = express();
@@ -20,6 +21,7 @@ const swaggerDocument = YAML.load("./swagger.yaml");
 // Rutas
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 app.use("/api",usuarioRoutes);
+app.use("/api", sesionRoutes);
 
 
 const PORT = process.env.PORT || 3000;

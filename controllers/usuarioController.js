@@ -231,3 +231,23 @@ exports.verificarOtp = async (req, res, next) => {
     next(err);
   }
 };
+
+const Sesion = require("../models/Sesion");
+
+// ✅ Historial de sesiones de un usuario autenticado
+exports.historialSesiones = async (req, res) => {
+  try {
+    const userId = req.user.id; // viene del token JWT
+
+    const sesiones = await Sesion.obtenerPorUsuario(userId);
+
+    if (!sesiones || sesiones.length === 0) {
+      return res.status(404).json({ msg: "No hay historial de sesiones" });
+    }
+
+    res.json(sesiones);
+  } catch (err) {
+    console.error("Error al obtener historial:", err);
+    res.status(500).json({ msg: "Error en el servidor" });
+  }
+};
