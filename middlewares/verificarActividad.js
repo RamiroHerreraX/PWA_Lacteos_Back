@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 const userActivity = {}; 
 const INACTIVITY_LIMIT = 60 * 1000; 
 
+// Middleware de verificación de actividad
 const verificarActividad = (req, res, next) => {
   const token = req.headers["authorization"]?.split(" ")[1];
   if (!token) return res.status(401).json({ msg: "Token no proporcionado" });
@@ -26,4 +27,21 @@ const verificarActividad = (req, res, next) => {
   }
 };
 
-module.exports = { verificarActividad, userActivity };
+// Middleware de verificación de token general
+const verificarToken = (req, res, next) => {
+  const token = req.headers["authorization"]?.split(" ")[1];
+
+  if (!token) {
+    return res.status(401).json({ msg: "Token requerido" });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded; // { id, email, rol }
+    next();
+  } catch (err) {
+    return res.status(403).json({ msg: "Token inválido o expirado" });
+  }
+};
+
+module.exports = { verificarActividad, verificarToken, userActivity };
