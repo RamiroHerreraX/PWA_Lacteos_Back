@@ -11,56 +11,36 @@ const { userActivity } = require("../middlewares/verificarActividad");
 
 const offlineFile = path.join(__dirname, "../offline-users.json");
 const otpStore = {};
+const loginAttempts = {}; 
+/*
+Estructura por email:
+loginAttempts[email] = {
+  intentos: 0,
+  bloqueos: 0,
+  bloqueoHasta: null
+}
+*/
 
-
-// Guardar usuarios en offline-users.json
+// ================= Funciones auxiliares =================
 const guardarOffline = (usuarios) => {
   fs.writeFileSync(offlineFile, JSON.stringify(usuarios, null, 2));
 };
 
-// Leer usuarios del cache
 const leerOffline = () => {
   if (!fs.existsSync(offlineFile)) return [];
   const data = fs.readFileSync(offlineFile, "utf-8");
   return JSON.parse(data);
 };
 
-exports.listarUsuarios = async (req, res) => {
-  try {
-    const usuarios = await Usuario.obtenerTodos();
-
-    if (!usuarios || usuarios.length === 0) {
-      return res.status(404).json({ error: "No se encontraron usuarios" });
-    }
-
-    res.status(200).json(usuarios);
-  } catch (err) {
-    res.status(500).json({ error: "Error al listar usuarios: " + err.message });
-  }
+const verificarBloqueo = (email) => {
+  const info = loginAttempts[email];
+  if (!info) return false;
+  if (info.bloqueoHasta && Date.now() < info.bloqueoHasta) return true;
+  return false;
 };
 
 
-exports.crearUsuario = async (req, res) => {
-  const { nombre, email, password, rol } = req.body;
-  try {
-    const hashedPassword = await bcrypt.hash(password, 10); 
-
-    const nuevoUsuario = await Usuario.crear({
-      nombre,
-      email,
-      password: hashedPassword, 
-      rol,
-    });
-
-    const usuariosOffline = leerOffline();
-    guardarOffline([...usuariosOffline, nuevoUsuario]);
-
-    res.status(201).json({ message: "Usuario creado", usuario: nuevoUsuario });
-  } catch (err) {
-    res.status(500).json({ error: "Error al crear usuario: " + err.message });
-  }
-};
-
+// ================= LOGIN CON BASE DE DATOS =================
 exports.loginUsuario = async (req, res) => {
   const { email, password } = req.body;
 
@@ -68,8 +48,37 @@ exports.loginUsuario = async (req, res) => {
     const user = await Usuario.obtenerPorEmail(email);
     if (!user) return res.status(400).json({ msg: "Usuario no encontrado" });
 
+    if (!loginAttempts[email]) loginAttempts[email] = { intentos: 0, bloqueos: 0, bloqueoHasta: null };
+
+    if (verificarBloqueo(email)) {
+      const tiempoRestante = Math.ceil((loginAttempts[email].bloqueoHasta - Date.now()) / 1000);
+      return res.status(403).json({ msg: `Usuario bloqueado. Intenta en ${tiempoRestante} segundos.` });
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ msg: "Contraseña incorrecta" });
+    if (!isMatch) {
+      loginAttempts[email].intentos += 1;
+
+      if (loginAttempts[email].intentos >= 5) {
+        loginAttempts[email].intentos = 0;
+        loginAttempts[email].bloqueos += 1;
+
+        if (loginAttempts[email].bloqueos >= 3) {
+          loginAttempts[email].bloqueoHasta = Date.now() + 24 * 60 * 60 * 1000; // 24h
+          loginAttempts[email].bloqueos = 0;
+          return res.status(403).json({ msg: "Usuario bloqueado 24 horas por múltiples intentos fallidos" });
+        } else {
+          loginAttempts[email].bloqueoHasta = Date.now() + 60 * 1000; // 1 minuto
+          return res.status(403).json({ msg: "Usuario bloqueado 1 minuto por 5 intentos fallidos" });
+        }
+      }
+
+      return res.status(400).json({ msg: "Contraseña incorrecta" });
+    }
+
+    // ✅ Login exitoso: reiniciar intentos y bloqueos
+    loginAttempts[email].intentos = 0;
+    loginAttempts[email].bloqueos = 0; // 🔹 reiniciar bloqueos al iniciar sesión
 
     // Generar OTP
     const otp = speakeasy.totp({
@@ -78,16 +87,13 @@ exports.loginUsuario = async (req, res) => {
       step: 300,
       digits: 6,
     });
-
     otpStore[email] = { otp, expires: Date.now() + 5 * 60 * 1000 };
 
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-    tls: {
-    rejectUnauthorized: false // ⚠️ Solo para desarrollo
-  }
-});
+      tls: { rejectUnauthorized: false }
+    });
 
     try {
       await transporter.sendMail({
@@ -98,7 +104,7 @@ exports.loginUsuario = async (req, res) => {
       });
       res.json({ msg: "Código 2FA enviado al correo" });
     } catch (err) {
-      console.warn("No se pudo enviar correo, usando login offline:", err.message);
+      console.warn("No se pudo enviar correo, intentando login offline:", err.message);
       return exports.loginOffUsuario(req, res);
     }
 
@@ -108,13 +114,14 @@ exports.loginUsuario = async (req, res) => {
   }
 };
 
+// ================= LOGIN OFFLINE =================
 exports.loginOffUsuario = async (req, res) => {
   const { email, password } = req.body;
 
   try {
     let user;
     try {
-      user = await Usuario.obtenerPorEmail(email); 
+      user = await Usuario.obtenerPorEmail(email);
     } catch (err) {
       console.warn("Base de datos offline, buscando en cache...");
       const usuariosOffline = leerOffline();
@@ -123,8 +130,37 @@ exports.loginOffUsuario = async (req, res) => {
 
     if (!user) return res.status(400).json({ msg: "Usuario no encontrado" });
 
+    if (!loginAttempts[email]) loginAttempts[email] = { intentos: 0, bloqueos: 0, bloqueoHasta: null };
+
+    if (verificarBloqueo(email)) {
+      const tiempoRestante = Math.ceil((loginAttempts[email].bloqueoHasta - Date.now()) / 1000);
+      return res.status(403).json({ msg: `Usuario bloqueado. Intenta en ${tiempoRestante} segundos.` });
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ msg: "Contraseña incorrecta" });
+    if (!isMatch) {
+      loginAttempts[email].intentos += 1;
+
+      if (loginAttempts[email].intentos >= 5) {
+        loginAttempts[email].intentos = 0;
+        loginAttempts[email].bloqueos += 1;
+
+        if (loginAttempts[email].bloqueos >= 3) {
+          loginAttempts[email].bloqueoHasta = Date.now() + 24 * 60 * 60 * 1000; // 24h
+          loginAttempts[email].bloqueos = 0;
+          return res.status(403).json({ msg: "Usuario bloqueado 24 horas por múltiples intentos fallidos" });
+        } else {
+          loginAttempts[email].bloqueoHasta = Date.now() + 60 * 1000; // 1 minuto
+          return res.status(403).json({ msg: "Usuario bloqueado 1 minuto por 5 intentos fallidos" });
+        }
+      }
+
+      return res.status(400).json({ msg: "Contraseña incorrecta" });
+    }
+
+    // ✅ Login exitoso offline: reiniciar intentos y bloqueos
+    loginAttempts[email].intentos = 0;
+    loginAttempts[email].bloqueos = 0;
 
     // Generar OTP offline
     const otp = speakeasy.totp({
@@ -137,14 +173,10 @@ exports.loginOffUsuario = async (req, res) => {
 
     userActivity[user.email] = Date.now();
 
-
     const usuariosOffline = leerOffline();
     const index = usuariosOffline.findIndex(u => u.email === email);
-    if (index >= 0) {
-      usuariosOffline[index] = user;
-    } else {
-      usuariosOffline.push(user);
-    }
+    if (index >= 0) usuariosOffline[index] = user;
+    else usuariosOffline.push(user);
     guardarOffline(usuariosOffline);
 
     res.json({ msg: "Login exitoso (offline) - código 2FA generado", otp });
@@ -154,6 +186,17 @@ exports.loginOffUsuario = async (req, res) => {
     res.status(500).json({ msg: "Error en el servidor" });
   }
 };
+
+
+
+
+
+
+
+
+
+
+
 
 const pool = require("../config/db");
 
@@ -249,5 +292,41 @@ exports.historialSesiones = async (req, res) => {
   } catch (err) {
     console.error("Error al obtener historial:", err);
     res.status(500).json({ msg: "Error en el servidor" });
+  }
+};
+
+exports.listarUsuarios = async (req, res) => {
+  try {
+    const usuarios = await Usuario.obtenerTodos();
+
+    if (!usuarios || usuarios.length === 0) {
+      return res.status(404).json({ error: "No se encontraron usuarios" });
+    }
+
+    res.status(200).json(usuarios);
+  } catch (err) {
+    res.status(500).json({ error: "Error al listar usuarios: " + err.message });
+  }
+};
+
+
+exports.crearUsuario = async (req, res) => {
+  const { nombre, email, password, rol } = req.body;
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10); 
+
+    const nuevoUsuario = await Usuario.crear({
+      nombre,
+      email,
+      password: hashedPassword, 
+      rol,
+    });
+
+    const usuariosOffline = leerOffline();
+    guardarOffline([...usuariosOffline, nuevoUsuario]);
+
+    res.status(201).json({ message: "Usuario creado", usuario: nuevoUsuario });
+  } catch (err) {
+    res.status(500).json({ error: "Error al crear usuario: " + err.message });
   }
 };
