@@ -1,0 +1,23 @@
+[
+  {
+    "id": 1,
+    "nombre": "Roxana",
+    "email": "roxana.ort100@gmail.com",
+    "password": "$2b$10$utst/JwGVLMYb03/d9oKIu/GY3QgRexssQlmr9bKjASMwlron6ioe",
+    "rol": "admin"
+  },
+  {
+    "id": 11,
+    "nombre": "Mari",
+    "email": "roxanaortega309@gmail.com",
+    "password": "$2b$10$p9oquY3KmqNlbtFSDMoqBusBgoi0J0TwTbiFm8bMtjk3CaKnQEN3m",
+    "rol": "lector"
+  },
+  {
+    "id": 9,
+    "nombre": "Roman",
+    "email": "proveedorsurtirama0@gmail.com",
+    "password": "$2b$10$IyXNVdTaOYWBL3XY0wIcMOEmh7YJC8PMJO.11XYCp3xe3r0af/4le",
+    "rol": "editor"
+  }
+]

@@ -25,6 +25,7 @@ const router = express.Router();
 const usuarioController = require("../controllers/usuarioController");
 const authController = require("../controllers/authController");
 
+const { verificarActividad } = require("../middlewares/verificarActividad"); 
 // Rutas de autenticación
 router.post("/login", usuarioController.loginUsuario);
 router.post("/verificar-otp", usuarioController.verificarOtp);
@@ -33,7 +34,6 @@ router.post("/verificar-otp", usuarioController.verificarOtp);
 router.post("/reset/usuario", authController.recuperarUsuario);
 router.post("/reset/enviar", authController.enviarEnlaceReset);
 router.post("/reset/verificar-otp", authController.verificarOtp);
-// Esta ruta debe ir ÚLTIMA para evitar conflictos
 router.post("/reset/:token", authController.restablecerPassword);
 
 // Rutas de usuarios
