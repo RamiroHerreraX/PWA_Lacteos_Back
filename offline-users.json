@@ -1,0 +1,51 @@
+[
+  {
+    "id": 1,
+    "nombre": "Roxana",
+    "email": "roxana.ort100@gmail.com",
+    "password": "$2b$10$fZJ2vtE1DDxcdsjRMeRy7esAMuPHxY0bJ2v2EvUmeQNEutydwGe.2",
+    "rol": "admin"
+  },
+  {
+    "id": 11,
+    "nombre": "Mari",
+    "email": "roxanaortega309@gmail.com",
+    "password": "$2b$10$p9oquY3KmqNlbtFSDMoqBusBgoi0J0TwTbiFm8bMtjk3CaKnQEN3m",
+    "rol": "lector"
+  },
+  {
+    "id": 9,
+    "nombre": "Roman",
+    "email": "proveedorsurtirama0@gmail.com",
+    "password": "$2b$10$DMiUS5QlTN207uN4WgQctOzOeUUOQIiiCR/Yj1mWJgtH2GXoXhY06",
+    "rol": "editor"
+  },
+  {
+    "id": 12,
+    "nombre": "Luis",
+    "email": "rox.renteria1234@gmail.com",
+    "password": "$2b$10$OWuhymnry9CiQvdZtAPUcuTUAEmzbSMhjffgLozK3.cgj9xSUh2Pi",
+    "rol": "lector"
+  },
+  {
+    "id": 13,
+    "nombre": "Alejandra",
+    "email": "alejandra.glv.gg@gmail.com",
+    "password": "$2b$10$JDnVF..O.N3c9v/rlz27BOjuypMN8.cKvayOcrIr.Opk3VZNV9xp2",
+    "rol": "admin"
+  },
+  {
+    "id": 16,
+    "nombre": "Mariana",
+    "email": "mariana@gmail.com",
+    "password": "$2b$10$4JwP.Ggk7BkocrhyUxT2Pe1VcLgKOq7MLsh0GWP7eVz6Y4rzqbrbq",
+    "rol": "lector"
+  },
+  {
+    "id": 18,
+    "nombre": "Juan Antonio",
+    "email": "antonio@mail.com",
+    "password": "$2b$10$8vUDHjOkldM4aOnYgzOzoe3IKdj1xFZPGIALbN.Sba/iIC81ftaf.",
+    "rol": "editor"
+  }
+]
