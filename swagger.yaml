@@ -137,6 +137,18 @@ paths:
     post:
       tags: [2️⃣ Recuperación de Acceso]
       summary: TC-REC-001: Recuperar nombre de usuario
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "admin@mail.com"
       responses:
         '200':
           description: ✅ ÉXITO - Usuario enviado al correo
@@ -147,6 +159,18 @@ paths:
     post:
       tags: [2️⃣ Recuperación de Acceso]
       summary: TC-REC-003/004: Solicitar recuperación de contraseña
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "admin@mail.com"
       responses:
         '200':
           description: ✅ ÉXITO - Proceso iniciado según rol
@@ -155,9 +179,26 @@ paths:
     post:
       tags: [2️⃣ Recuperación de Acceso]
       summary: TC-REC-005: Verificar OTP para administradores
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, otp, token]
+              properties:
+                email:
+                  type: string
+                  format: email
+                otp:
+                  type: string
+                  example: "123456"
+                token:
+                  type: string
+                  example: "token_recibido_en_el_paso_anterior"
       responses:
         '200':
-          description: ✅ ÉXITO - OTP verificado
+          description: ✅ ÉXITO - OTP verificado, enlace enviado
         '400':
           description: ❌ ERROR - OTP incorrecto o expirado
 
@@ -176,13 +217,33 @@ paths:
     post:
       tags: [3️⃣ Gestión de Usuarios]
       summary: TC-USR-004: Crear nuevo usuario (solo Admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nombre, email, password, rol]
+              properties:
+                nombre:
+                  type: string
+                  example: "Juan Pérez"
+                email:
+                  type: string
+                  format: email
+                  example: "nuevo@mail.com"
+                password:
+                  type: string
+                  example: "NuevaPass123!"
+                rol:
+                  type: string
+                  enum: [admin, editor, lector]
+                  example: "lector"
       responses:
         '201':
           description: ✅ ÉXITO - Usuario creado exitosamente
-        '400':
-          description: ❌ ERROR - Datos inválidos
         '403':
-          description: ⚠️ DENEGADO - Sin permisos
+          description: ⚠️ DENEGADO - Sin permisos de administrador
 
   # ==================== 📌 HISTORIAL DE SESIONES ====================
   /usuario/sesiones:
