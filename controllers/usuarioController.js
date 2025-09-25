@@ -191,17 +191,6 @@ exports.loginOffUsuario = async (req, res) => {
   }
 };
 
-
-
-
-
-
-
-
-
-
-
-
 const pool = require("../config/db");
 
 const { obtenerUbicacionIP } = require("./geoip"); // ruta a geoip.js
@@ -332,5 +321,25 @@ exports.crearUsuario = async (req, res) => {
     res.status(201).json({ message: "Usuario creado", usuario: nuevoUsuario });
   } catch (err) {
     res.status(500).json({ error: "Error al crear usuario: " + err.message });
+  }
+};
+
+// Agregar este método al final del archivo existente
+
+// ✅ Obtener historial de sesiones del usuario autenticado
+exports.historialSesiones = async (req, res) => {
+  try {
+    const userId = req.user.id; // viene del token JWT
+
+    const sesiones = await Sesion.obtenerPorUsuario(userId);
+
+    if (!sesiones || sesiones.length === 0) {
+      return res.status(404).json({ msg: "No hay historial de sesiones" });
+    }
+
+    res.json(sesiones);
+  } catch (err) {
+    console.error("Error al obtener historial:", err);
+    res.status(500).json({ msg: "Error en el servidor" });
   }
 };

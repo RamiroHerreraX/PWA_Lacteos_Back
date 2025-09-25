@@ -3,27 +3,36 @@ info:
   title: 🎯 PWA Lacteos - API Documentation & Testing Matrix
   description: |
     # Sistema de Gestión de Usuarios con Autenticación 2FA
-    ## Descripción General
     
     ## 📋 Matriz de Pruebas Integrada
     
-    Esta documentación sirve como herramienta para ejecutar la matriz de pruebas del sistema.
+    ## ⏱️ Tiempos de Ejecución Esperados:
+    - **Rápido (< 500ms)**: Operaciones simples sin external calls
+    - **Medio (500ms - 2s)**: Operaciones con BD o emails
+    - **Lento (2s - 5s)**: Operaciones con geolocalización o múltiples procesos
     
     ### Funcionalidades a probar:
     - ✅ Autenticación con verificación en dos factores (2FA)
     - ✅ Recuperación de usuario y contraseña por roles
     - ✅ Gestión de usuarios (Admin, Editor, Lector)
     - ✅ Validación de seguridad y roles
+    - ✅ Geolocalización de sesiones
+    - ✅ Historial de actividad
     
     ### Usuarios de prueba:
     - **Admin**: admin@mail.com / Admin123!
     - **Editor**: editor@mail.com / Editor123!  
     - **Lector**: lector@mail.com / Lector123!
     
-    ### Flujos de prueba:
-    1. Autenticación → 2FA → Acceso
-    2. Recuperación → OTP → Restablecimiento
-    3. CRUD usuarios según rol
+    ### Códigos de Error:
+    - **200**: Operación exitosa
+    - **201**: Recurso creado exitosamente
+    - **400**: Datos inválidos o faltantes
+    - **401**: Token requerido o inválido
+    - **403**: Permisos insuficientes
+    - **404**: Recurso no encontrado
+    - **500**: Error interno del servidor
+    
   version: 1.0.0
   contact:
     name: Equipo de Desarrollo
@@ -33,6 +42,7 @@ servers:
   - url: http://localhost:3000/api
     description: 🧪 Servidor de Desarrollo y Pruebas
 
+# 🔐 SEGURIDAD GLOBAL - Todos los endpoints requieren autenticación por defecto
 security:
   - bearerAuth: []
 
@@ -43,18 +53,30 @@ tags:
     description: Pruebas de recuperación por roles (HU-02)
   - name: 3️⃣ Gestión de Usuarios
     description: Pruebas CRUD según roles de usuario
-  - name: 🧪 Matriz de Pruebas
-    description: Ejecución guiada de casos de prueba
+  - name: 4️⃣ Sesiones y Geolocalización
+    description: Pruebas de historial y ubicación
+  - name: 🧪 Casos de Error
+    description: Validación de manejo de errores
 
 paths:
   # ==================== 1️⃣ AUTENTICACIÓN 2FA ====================
   /login:
     post:
-      security: [] 
+      security: []  # 🔓 ENDPOINT PÚBLICO - Sin candado
       tags: [1️⃣ Autenticación 2FA]
-      summary: TC-AUTH-001: Login con credenciales válidas + 2FA
+      summary: TC-AUTH-001 - Login con credenciales válidas + 2FA
       description: |
+        **⏱️ Tiempo esperado:** 800ms - 1.5s (incluye generación OTP y envío de email)
+        
         **Caso de prueba:** Autenticación exitosa con verificación en dos factores
+        
+        **Validaciones a probar:**
+        - Email formato válido
+        - Contraseña no vacía
+        - Usuario existe en BD
+        - Contraseña coincide con hash
+        - Generación de OTP
+        - Envío de email (online/offline)
       requestBody:
         required: true
         content:
@@ -67,25 +89,84 @@ paths:
                   type: string
                   format: email
                   example: "admin@mail.com"
+                  description: "Email registrado en el sistema"
                 password:
                   type: string
                   example: "Admin123!"
+                  description: "Contraseña del usuario"
+            examples:
+              admin_login:
+                summary: "Login Administrador"
+                value:
+                  email: "admin@mail.com"
+                  password: "Admin123!"
+              editor_login:
+                summary: "Login Editor"
+                value:
+                  email: "editor@mail.com"
+                  password: "Editor123!"
+              invalid_email:
+                summary: "Email no registrado (Error)"
+                value:
+                  email: "noexiste@mail.com"
+                  password: "Admin123!"
+              wrong_password:
+                summary: "Contraseña incorrecta (Error)"
+                value:
+                  email: "admin@mail.com"
+                  password: "WrongPassword123!"
       responses:
         '200':
           description: ✅ ÉXITO - Código 2FA enviado al correo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  msg:
+                    type: string
+                    example: "Código 2FA enviado al correo"
+                  otp:
+                    type: string
+                    description: "Solo en modo offline"
+                    example: "123456"
+                  executionTime:
+                    type: number
+                    description: "Tiempo de ejecución en milisegundos"
+                    example: 1250
         '400':
           description: ❌ ERROR - Credenciales incorrectas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                usuario_no_encontrado:
+                  value:
+                    msg: "Usuario no encontrado"
+                    executionTime: 45
+                password_incorrecto:
+                  value:
+                    msg: "Contraseña incorrecta"
+                    executionTime: 120
         '500':
           description: ⚠️ ERROR - Problema en el servidor
 
   /verificar-otp:
     post:
+      security: []  # 🔓 ENDPOINT PÚBLICO - Sin candado
       tags: [1️⃣ Autenticación 2FA]
-
-      security: [] 
-      tags: [Autenticación]
-      summary: Verificar código OTP
-      description: Validar OTP y registrar geolocalización del inicio de sesión
+      summary: TC-AUTH-004 - Verificar código OTP + Geolocalización
+      description: |
+        **⏱️ Tiempo esperado:** 1.5s - 3s (incluye consulta geolocalización IP)
+        
+        **Validaciones a probar:**
+        - OTP correcto
+        - OTP no expirado (<5min)
+        - Generación de JWT token
+        - Registro de sesión con IP
+        - Obtención de geolocalización
+        - Actualización actividad usuario
       requestBody:
         required: true
         content:
@@ -100,6 +181,23 @@ paths:
                 otp:
                   type: string
                   example: "123456"
+                  description: "Código recibido por correo"
+            examples:
+              otp_valido:
+                summary: "OTP Válido"
+                value:
+                  email: "admin@mail.com"
+                  otp: "123456"
+              otp_incorrecto:
+                summary: "OTP Incorrecto (Error)"
+                value:
+                  email: "admin@mail.com"
+                  otp: "000000"
+              otp_expirado:
+                summary: "OTP Expirado (Error)"
+                value:
+                  email: "admin@mail.com"
+                  otp: "999999"
       responses:
         '200':
           description: ✅ ÉXITO - Autenticación completada
@@ -110,17 +208,24 @@ paths:
                 properties:
                   token:
                     type: string
+                    description: "JWT token válido por 1 hora"
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                   rol:
                     type: string
+                    enum: [admin, editor, lector]
+                    example: "admin"
                   ubicacion:
                     type: object
                     properties:
                       ip:
                         type: string
-                        example: "187.190.38.55"
+                        example: "189.204.0.0"
                       country:
                         type: string
                         example: "MX"
+                      region:
+                        type: string
+                        example: "CMX"
                       city:
                         type: string
                         example: "Ciudad de México"
@@ -129,14 +234,46 @@ paths:
                         items:
                           type: number
                         example: [19.42847, -99.12766]
+                      timezone:
+                        type: string
+                        example: "America/Mexico_City"
+                  executionTime:
+                    type: number
+                    description: "Tiempo total de ejecución en ms"
+                    example: 2150
         '400':
           description: ❌ ERROR - OTP incorrecto o expirado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                otp_incorrecto:
+                  value:
+                    msg: "OTP incorrecto"
+                    executionTime: 80
+                otp_expirado:
+                  value:
+                    msg: "OTP expirado"
+                    executionTime: 95
+                otp_no_generado:
+                  value:
+                    msg: "OTP no generado"
+                    executionTime: 60
 
   # ==================== 2️⃣ RECUPERACIÓN DE ACCESO ====================
   /reset/usuario:
     post:
+      security: []  # 🔓 ENDPOINT PÚBLICO - Sin candado
       tags: [2️⃣ Recuperación de Acceso]
-      summary: TC-REC-001: Recuperar nombre de usuario
+      summary: TC-REC-001 - Recuperar nombre de usuario
+      description: |
+        **⏱️ Tiempo esperado:** 300ms - 800ms (búsqueda en BD + envío email)
+        
+        **Validaciones a probar:**
+        - Email existe en sistema
+        - Envío de correo (online/offline)
+        - Mensaje de confirmación
       requestBody:
         required: true
         content:
@@ -149,16 +286,62 @@ paths:
                   type: string
                   format: email
                   example: "admin@mail.com"
+            examples:
+              email_valido:
+                summary: "Email registrado"
+                value:
+                  email: "admin@mail.com"
+              email_no_registrado:
+                summary: "Email no registrado (Error)"
+                value:
+                  email: "noexiste@mail.com"
       responses:
         '200':
           description: ✅ ÉXITO - Usuario enviado al correo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  msg:
+                    type: string
+                    example: "Tu nombre de usuario fue enviado al correo"
+                  usuario:
+                    type: string
+                    description: "Solo en modo offline"
+                    example: "Admin User"
+                  executionTime:
+                    type: number
+                    example: 450
         '404':
           description: ❌ ERROR - Correo no registrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                msg: "Correo no registrado"
+                executionTime: 120
 
   /reset/enviar:
     post:
+      security: []  # 🔓 ENDPOINT PÚBLICO - Sin candado
       tags: [2️⃣ Recuperación de Acceso]
-      summary: TC-REC-003/004: Solicitar recuperación de contraseña
+      summary: TC-REC-003/004 - Solicitar recuperación de contraseña
+      description: |
+        **⏱️ Tiempo esperado:** 
+        - Admin: 800ms - 1.5s (generación OTP + email)
+        - Otros roles: 500ms - 1s (generación enlace)
+        
+        **Comportamiento por rol:**
+        - **Admin**: Envía OTP con token (2FA)
+        - **Editor/Lector**: Envía enlace directo
+        
+        **Validaciones a probar:**
+        - Usuario existe
+        - Generación de token único
+        - Diferenciación por rol
+        - Tiempo de expiración (5min admin, 15min otros)
       requestBody:
         required: true
         content:
@@ -171,14 +354,65 @@ paths:
                   type: string
                   format: email
                   example: "admin@mail.com"
+            examples:
+              admin_reset:
+                summary: "Reset Admin (requiere OTP)"
+                value:
+                  email: "admin@mail.com"
+              editor_reset:
+                summary: "Reset Editor (enlace directo)"
+                value:
+                  email: "editor@mail.com"
       responses:
         '200':
           description: ✅ ÉXITO - Proceso iniciado según rol
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  msg:
+                    type: string
+                    example: "OTP enviado al correo"
+                  token:
+                    type: string
+                    description: "Token para verificación OTP"
+                    example: "abc123def456"
+                  otp:
+                    type: string
+                    description: "Solo en modo offline para admin"
+                    example: "123456"
+                  resetUrl:
+                    type: string
+                    description: "Solo para roles no admin"
+                    example: "http://localhost:4200/reset/abc123def456"
+                  executionTime:
+                    type: number
+                    example: 1100
+        '404':
+          description: ❌ ERROR - Email no registrado
+          content:
+            application/json:
+              example:
+                msg: "Email no registrado"
+                executionTime: 85
 
   /reset/verificar-otp:
     post:
+      security: []  # 🔓 ENDPOINT PÚBLICO - Sin candado
       tags: [2️⃣ Recuperación de Acceso]
-      summary: TC-REC-005: Verificar OTP para administradores
+      summary: TC-REC-005 - Verificar OTP para administradores
+      description: |
+        **⏱️ Tiempo esperado:** 200ms - 500ms (validación rápida)
+        
+        **Solo para usuarios Admin**
+        
+        **Validaciones a probar:**
+        - Token válido
+        - Email coincide con token
+        - OTP correcto
+        - No expirado (<5min)
+        - Generación de token final para reset
       requestBody:
         required: true
         content:
@@ -190,33 +424,178 @@ paths:
                 email:
                   type: string
                   format: email
+                  example: "admin@mail.com"
                 otp:
                   type: string
                   example: "123456"
+                  description: "Código recibido por correo"
                 token:
                   type: string
-                  example: "token_recibido_en_el_paso_anterior"
+                  example: "abc123def456"
+                  description: "Token recibido en paso anterior"
       responses:
         '200':
           description: ✅ ÉXITO - OTP verificado, enlace enviado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  msg:
+                    type: string
+                    example: "OTP verificado correctamente. Usa este enlace para restablecer la contraseña"
+                  resetToken:
+                    type: string
+                    example: "xyz789abc123"
+                  resetUrl:
+                    type: string
+                    example: "http://localhost:4200/reset/xyz789abc123"
+                  executionTime:
+                    type: number
+                    example: 320
         '400':
           description: ❌ ERROR - OTP incorrecto o expirado
+          content:
+            application/json:
+              example:
+                msg: "OTP incorrecto"
+                executionTime: 150
+
+  /reset/{token}:
+    post:
+      security: []  # 🔓 ENDPOINT PÚBLICO - Sin candado
+      tags: [2️⃣ Recuperación de Acceso]
+      summary: TC-REC-006 - Restablecer contraseña final
+      description: |
+        **⏱️ Tiempo esperado:** 400ms - 900ms (hash de contraseña + actualización BD)
+        
+        **Endpoint faltante en tu Swagger original**
+        
+        **Validaciones a probar:**
+        - Token válido y no expirado
+        - Contraseña cumple requisitos
+        - Hash y actualización en BD
+        - Limpieza de token usado
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "abc123def456"
+          description: "Token de recuperación"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [newPassword]
+              properties:
+                newPassword:
+                  type: string
+                  example: "NewPassword123!"
+                  description: "Nueva contraseña (min 8 chars, mayús, minús, número, especial)"
+            examples:
+              password_valido:
+                summary: "Contraseña válida"
+                value:
+                  newPassword: "NewPassword123!"
+              password_debil:
+                summary: "Contraseña débil (Error)"
+                value:
+                  newPassword: "123"
+      responses:
+        '200':
+          description: ✅ ÉXITO - Contraseña actualizada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  msg:
+                    type: string
+                    example: "Contraseña actualizada correctamente"
+                  executionTime:
+                    type: number
+                    example: 650
+        '400':
+          description: ❌ ERROR - Token inválido o expirado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                token_invalido:
+                  value:
+                    msg: "Token inválido"
+                    executionTime: 90
+                token_expirado:
+                  value:
+                    msg: "Token expirado"
+                    executionTime: 110
 
   # ==================== 3️⃣ GESTIÓN DE USUARIOS ====================
   /usuario:
     get:
+      # 🔒 ENDPOINT PROTEGIDO - Hereda seguridad global (con candado)
       tags: [3️⃣ Gestión de Usuarios]
-      summary: TC-USR-001/002/003: Listar usuarios
+      summary: TC-USR-001 - Listar todos los usuarios
+      description: |
+        **⏱️ Tiempo esperado:** 100ms - 300ms (consulta simple a BD)
+        
+        **⚠️ PUNTO DE MEJORA:** Este endpoint debería requerir autenticación
+        
+        **Validaciones a probar:**
+        - Respuesta con lista de usuarios
+        - Campos incluidos/excluidos (no mostrar passwords)
+        - Manejo de BD vacía
+        - Orden de resultados
       responses:
         '200':
           description: ✅ ÉXITO - Lista de usuarios obtenida
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Usuario'
+              example:
+                - id: 1
+                  nombre: "Administrador Principal"
+                  email: "admin@mail.com"
+                  rol: "admin"
+                  creado_en: "2024-01-15T10:30:00Z"
+                  executionTime: 180
+        '404':
+          description: ❌ No se encontraron usuarios
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "No se encontraron usuarios"
+                executionTime: 95
         '500':
           description: ❌ ERROR - Problema en el servidor
 
   /usuario/nuevo:
     post:
+      # 🔒 ENDPOINT PROTEGIDO - Hereda seguridad global (con candado)
       tags: [3️⃣ Gestión de Usuarios]
-      summary: TC-USR-004: Crear nuevo usuario (solo Admin)
+      summary: TC-USR-004 - Crear nuevo usuario
+      description: |
+        **⏱️ Tiempo esperado:** 600ms - 1.2s (validaciones + hash password + inserción BD)
+        
+        **⚠️ PUNTO DE MEJORA:** Solo administradores deberían poder crear usuarios
+        
+        **Validaciones a probar:**
+        - Todos los campos requeridos
+        - Email formato válido y único
+        - Contraseña cumple requisitos de seguridad
+        - Rol válido (admin, editor, lector)
+        - Hash de contraseña
+        - Inserción en BD y cache offline
       requestBody:
         required: true
         content:
@@ -228,73 +607,127 @@ paths:
                 nombre:
                   type: string
                   example: "Juan Pérez"
+                  description: "Nombre completo del usuario"
                 email:
                   type: string
                   format: email
                   example: "nuevo@mail.com"
+                  description: "Email único en el sistema"
                 password:
                   type: string
                   example: "NuevaPass123!"
+                  description: "Min 8 chars, mayúscula, minúscula, número, especial"
                 rol:
                   type: string
                   enum: [admin, editor, lector]
                   example: "lector"
+                  description: "Rol del usuario en el sistema"
+            examples:
+              usuario_valido:
+                summary: "Usuario válido completo"
+                value:
+                  nombre: "Juan Pérez"
+                  email: "nuevo@mail.com"
+                  password: "NuevaPass123!"
+                  rol: "lector"
+              email_duplicado:
+                summary: "Email duplicado (Error)"
+                value:
+                  nombre: "Test User"
+                  email: "admin@mail.com"
+                  password: "Test123!"
+                  rol: "editor"
+              password_debil:
+                summary: "Contraseña débil (Error)"
+                value:
+                  nombre: "Test User"
+                  email: "test@mail.com"
+                  password: "123"
+                  rol: "lector"
+              rol_invalido:
+                summary: "Rol inválido (Error)"
+                value:
+                  nombre: "Test User"
+                  email: "test@mail.com"
+                  password: "Test123!"
+                  rol: "superuser"
       responses:
         '201':
           description: ✅ ÉXITO - Usuario creado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Usuario'
+              example:
+                id: 15
+                nombre: "Juan Pérez"
+                email: "nuevo@mail.com"
+                rol: "lector"
+                creado_en: "2024-01-15T10:30:00Z"
+                executionTime: 850
+        '400':
+          description: ❌ ERROR - Validación fallida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                msg: "El email ya está registrado"
+                executionTime: 220
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
         '403':
-          description: ⚠️ DENEGADO - Sin permisos de administrador
+          $ref: '#/components/responses/ForbiddenError'
 
-  # ==================== 📌 HISTORIAL DE SESIONES ====================
-  /usuario/sesiones:
+  # ==================== 4️⃣ SESIONES Y GEOLOCALIZACIÓN ====================
+  /sesiones:
     get:
-      tags: [3️⃣ Gestión de Usuarios]
-      summary: Consultar historial de sesiones del usuario autenticado
-      description: Devuelve todas las sesiones registradas del usuario con IP, ubicación y fecha
-      security:
-        - bearerAuth: []
+      # 🔒 ENDPOINT PROTEGIDO - Hereda seguridad global (con candado)
+      tags: [4️⃣ Sesiones y Geolocalización]
+      summary: TC-SES-001 - Obtener historial de sesiones
+      description: |
+        **⏱️ Tiempo esperado:** 150ms - 400ms (consulta con join a tabla sesiones)
+        
+        **Endpoint protegido que requiere autenticación JWT**
+        
+        **Validaciones a probar:**
+        - Token JWT válido
+        - Usuario autenticado
+        - Historial ordenado por fecha descendente
+        - Campos de ubicación incluidos
       responses:
         '200':
-          description: ✅ ÉXITO - Lista de sesiones
+          description: ✅ ÉXITO - Historial de sesiones obtenido
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  type: object
-                  properties:
-                    id:
-                      type: integer
-                      example: 1
-                    usuario_id:
-                      type: integer
-                      example: 5
-                    ip:
-                      type: string
-                      example: "187.204.120.45"
-                    ubicacion:
-                      type: object
-                      example:
-                        country: "MX"
-                        city: "CDMX"
-                        ll: [19.4326, -99.1332]
-                    fecha:
-                      type: string
-                      format: date-time
-                      example: "2025-09-24T03:42:16Z"
+                  $ref: '#/components/schemas/Sesion'
+              example:
+                - id: 1
+                  usuario_id: 1
+                  ip: "189.204.0.0"
+                  ubicacion:
+                    country: "MX"
+                    region: "CMX"
+                    city: "Ciudad de México"
+                    ll: [19.42847, -99.12766]
+                  fecha: "2024-01-15T10:30:00Z"
+                  executionTime: 280
         '401':
-          description: ❌ Token requerido
-        '403':
-          description: ❌ Token inválido
+          $ref: '#/components/responses/UnauthorizedError'
         '404':
           description: ❌ No hay historial de sesiones
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                msg: "No hay historial de sesiones"
+                executionTime: 120
 
 components:
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
   schemas:
     Usuario:
       type: object
@@ -304,20 +737,167 @@ components:
           example: 1
         nombre:
           type: string
-          example: "Admin User"
+          example: "Administrador Principal"
         email:
           type: string
+          format: email
           example: "admin@mail.com"
         rol:
           type: string
+          enum: [admin, editor, lector]
           example: "admin"
         creado_en:
           type: string
           format: date-time
           example: "2024-01-15T10:30:00Z"
+        executionTime:
+          type: number
+          description: "Tiempo de ejecución en milisegundos"
+          example: 150
+      required: [id, nombre, email, rol]
+    
+    ErrorResponse:
+      type: object
+      properties:
+        msg:
+          type: string
+          example: "Mensaje de error descriptivo"
+        error:
+          type: string
+          example: "Detalle técnico del error"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+        executionTime:
+          type: number
+          description: "Tiempo de ejecución en milisegundos"
+          example: 85
+    
+    Sesion:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        usuario_id:
+          type: integer
+          example: 1
+        ip:
+          type: string
+          example: "189.204.0.0"
+        ubicacion:
+          type: object
+          properties:
+            country:
+              type: string
+              example: "MX"
+            region:
+              type: string
+              example: "CMX"
+            city:
+              type: string
+              example: "Ciudad de México"
+            ll:
+              type: array
+              items:
+                type: number
+              example: [19.42847, -99.12766]
+        fecha:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+        executionTime:
+          type: number
+          example: 250
+    
+    Ubicacion:
+      type: object
+      properties:
+        ip:
+          type: string
+          example: "189.204.0.0"
+        country:
+          type: string
+          example: "MX"
+        region:
+          type: string
+          example: "CMX"
+        city:
+          type: string
+          example: "Ciudad de México"
+        ll:
+          type: array
+          items:
+            type: number
+          example: [19.42847, -99.12766]
+        timezone:
+          type: string
+          example: "America/Mexico_City"
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "Ingresa el token JWT obtenido en /verificar-otp"
 
   responses:
-    Unauthorized:
+    UnauthorizedError:
       description: Token de acceso faltante o inválido
-    Forbidden:
-      description: No tiene permisos para esta acción
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            msg: "Token requerido o inválido"
+            executionTime: 25
+    
+    ForbiddenError:
+      description: Permisos insuficientes para la operación
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            msg: "Permisos insuficientes para esta acción"
+            executionTime: 30
+    
+    ValidationError:
+      description: Error de validación en los datos enviados
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            msg: "Datos de entrada inválidos"
+            error: "El campo 'email' debe ser una dirección de correo válida"
+
+  parameters:
+    AuthorizationHeader:
+      name: Authorization
+      in: header
+      required: true
+      description: Token JWT en formato Bearer
+      schema:
+        type: string
+        example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    
+    UserIdPath:
+      name: id
+      in: path
+      required: true
+      description: ID del usuario
+      schema:
+        type: integer
+        example: 1
+    
+    EmailQuery:
+      name: email
+      in: query
+      required: false
+      description: Filtrar por email
+      schema:
+        type: string
+        format: email
+        example: "admin@mail.com"

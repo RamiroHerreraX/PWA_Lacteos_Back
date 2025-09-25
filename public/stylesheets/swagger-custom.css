@@ -1,0 +1,24 @@
+/* Personalización de Swagger UI */
+.swagger-ui .info h1 {
+    color: #2563eb !important;
+}
+
+.swagger-ui .btn.authorize {
+    background-color: #10b981 !important;
+}
+
+.swagger-ui .opblock.opblock-post {
+    border-color: #10b981 !important;
+}
+
+.swagger-ui .opblock.opblock-get {
+    border-color: #3b82f6 !important;
+}
+
+.swagger-ui .opblock.opblock-put {
+    border-color: #f59e0b !important;
+}
+
+.swagger-ui .opblock.opblock-delete {
+    border-color: #ef4444 !important;
+}
