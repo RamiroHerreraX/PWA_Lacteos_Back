@@ -47,5 +47,33 @@
     "email": "antonio@mail.com",
     "password": "$2b$10$8vUDHjOkldM4aOnYgzOzoe3IKdj1xFZPGIALbN.Sba/iIC81ftaf.",
     "rol": "editor"
+  },
+  {
+    "id": 19,
+    "nombre": "Mariano",
+    "email": "mariano@mail.com",
+    "password": "$2b$10$4.o7/5Y4lT4L1/aMgeR4GuEngpK979X8XznkJJF7y9GU4797CwTDK",
+    "rol": "lector"
+  },
+  {
+    "id": 20,
+    "nombre": "Pablo",
+    "email": "pabloneave@mail.com",
+    "password": "$2b$10$2kRzmm8GMaQnQqWWzzby5OlJayS3b65FrDnODSkKYq11jXzmRKtSS",
+    "rol": "lector"
+  },
+  {
+    "id": 21,
+    "nombre": "Pedro",
+    "email": "pedrito@mail.com",
+    "password": "$2b$10$s2mZWxfBPgT/bU/jlDKepuNUq5ZBWOw2PUw82KJXoB2ucM0cuTor2",
+    "rol": "lector"
+  },
+  {
+    "id": 23,
+    "nombre": "Juana",
+    "email": "juanaligas@mail.com",
+    "password": "$2b$10$MoIWe190uf3ZXCUaDEDRGOACvNN7Vsae7NVGYlWjyf5N6O8lOXRA.",
+    "rol": "lector"
   }
 ]

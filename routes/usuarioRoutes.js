@@ -63,8 +63,8 @@ router.post("/reset/:token", authController.restablecerPassword);
 // ==================== GESTIÓN DE USUARIOS ====================
 // router.get("/usuario", verificarActividad, usuarioController.listarUsuarios);
 // router.post("/usuario/nuevo", verificarActividad, usuarioController.crearUsuario);
-router.get("/usuario", usuarioController.listarUsuarios);
-router.post("/usuario/nuevo", usuarioController.crearUsuario);
+router.get("/usuario", verificarActividad,usuarioController.listarUsuarios);
+router.post("/usuario/nuevo", verificarActividad,usuarioController.crearUsuario);
 router.get("/sesiones", verificarToken, usuarioController.historialSesiones);
 
 module.exports = router;

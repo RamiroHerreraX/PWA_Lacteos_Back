@@ -171,7 +171,11 @@ exports.loginOffUsuario = async (req, res) => {
     });
     otpStore[email] = { otp, expires: Date.now() + 5 * 60 * 1000 };
 
-    userActivity[user.email] = Date.now();
+    userActivity[user.email] = {
+    lastActive: Date.now(),
+    token: null // aquí aún no tienes JWT, pero mantienes la estructura
+  };
+
 
     const usuariosOffline = leerOffline();
     const index = usuariosOffline.findIndex(u => u.email === email);
