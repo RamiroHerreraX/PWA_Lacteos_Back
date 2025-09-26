@@ -187,6 +187,112 @@ exports.loginOffUsuario = async (req, res) => {
   }
 };
 
+
+// ================= VERIFICAR OTP =================
+exports.verificarOtp = async (req, res) => {
+  const { email, otp } = req.body;
+
+  const emailError = validarEmail(email);
+  if (emailError) return res.status(400).json({ msg: emailError });
+  const otpError = validarOtp(otp);
+  if (otpError) return res.status(400).json({ msg: otpError });
+
+  try {
+    if (!otpStore[email]) return res.status(400).json({ msg: "OTP no generado" });
+    if (Date.now() > otpStore[email].expires) { delete otpStore[email]; return res.status(400).json({ msg: "OTP expirado" }); }
+    if (otp !== otpStore[email].otp.toString()) return res.status(400).json({ msg: "OTP incorrecto" });
+
+    const user = await Usuario.obtenerPorEmail(email);
+    const token = jwt.sign(
+      { id: user.id, email: user.email, rol: user.rol },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    // 🔹 Obtener IP
+    let ip = req.headers["x-forwarded-for"] || req.connection.remoteAddress;
+    if (ip && ip.includes(",")) ip = ip.split(",")[0].trim();
+    let esLocalhost = false;
+    if (ip === "::1" || ip === "127.0.0.1" || !ip) { esLocalhost = true; ip = "189.204.0.0"; }
+
+    // 🔹 Obtener ubicación
+    let ubicacion = ip ? await obtenerUbicacionIP(ip) : null;
+    if (!ubicacion && esLocalhost) {
+      ubicacion = {
+        ip,
+        country: "MX",
+        region: "CMX",
+        city: "Ciudad de México",
+        ll: [19.42847, -99.12766],
+        timezone: "America/Mexico_City"
+      };
+    }
+
+    // 🔹 Desactivar cualquier sesión activa previa del usuario
+    await pool.query(
+      `UPDATE sesion 
+       SET estado = 'desactivada' 
+       WHERE usuario_id = $1 AND estado = 'activa'`,
+      [user.id]
+    );
+
+    // 🔹 Insertar nueva sesión (5 minutos activa)
+    await pool.query(
+      `INSERT INTO sesion 
+        (usuario_id, nombre, email, ip, ubicacion, token, estado, fecha_creacion, ultima_actividad, fecha_expiracion) 
+       VALUES ($1, $2, $3, $4, $5, $6, 'activa', NOW(), NOW(), NOW() + INTERVAL '5 minutes')`,
+      [user.id, user.nombre, user.email, ip, JSON.stringify(ubicacion), token]
+    );
+
+    userActivity[user.email] = { lastActive: Date.now(), token };
+    delete otpStore[email];
+
+    return res.json({ token, rol: user.rol, ubicacion: ubicacion || "No disponible" });
+
+  } catch (err) {
+    console.error("Error en verificarOtp:", err);
+    return res.status(500).json({ msg: "Error en el servidor" });
+  }
+};
+
+
+// ================= HISTORIAL DE SESIONES =================
+// ================== historialSesiones controller ==================
+exports.historialSesiones = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const sesiones = await Sesion.obtenerPorUsuario(userId);
+
+    if (!sesiones || sesiones.length === 0) {
+      return res.status(404).json({ msg: "No hay historial de sesiones" });
+    }
+
+    return res.status(200).json({
+      usuarioId: userId,
+      totalSesiones: sesiones.length,
+      sesiones,
+    });
+
+  } catch (err) {
+    console.error("Error historialSesiones:", err);
+    return res.status(500).json({ msg: "Error en el servidor" });
+  }
+};
+
+
+// ================= LISTAR USUARIOS =================
+exports.listarUsuarios = async (req, res) => {
+  try {
+    const usuarios = await Usuario.obtenerTodos();
+    if (!usuarios || usuarios.length === 0) return res.status(404).json({ msg: "No se encontraron usuarios" });
+    return res.json(usuarios);
+  } catch (err) {
+    console.error("Error listarUsuarios:", err);
+    return res.status(500).json({ msg: "Error en el servidor" });
+  }
+};
+
 // ================= CREAR USUARIO =================
 exports.crearUsuario = async (req, res) => {
   const { nombre, email, password, rol } = req.body;
@@ -214,70 +320,6 @@ exports.crearUsuario = async (req, res) => {
 
   } catch (err) {
     console.error("Error creando usuario:", err);
-    return res.status(500).json({ msg: "Error en el servidor" });
-  }
-};
-
-// ================= VERIFICAR OTP =================
-exports.verificarOtp = async (req, res) => {
-  const { email, otp } = req.body;
-
-  const emailError = validarEmail(email);
-  if (emailError) return res.status(400).json({ msg: emailError });
-  const otpError = validarOtp(otp);
-  if (otpError) return res.status(400).json({ msg: otpError });
-
-  try {
-    if (!otpStore[email]) return res.status(400).json({ msg: "OTP no generado" });
-    if (Date.now() > otpStore[email].expires) { delete otpStore[email]; return res.status(400).json({ msg: "OTP expirado" }); }
-    if (otp !== otpStore[email].otp.toString()) return res.status(400).json({ msg: "OTP incorrecto" });
-
-    const user = await Usuario.obtenerPorEmail(email);
-    const token = jwt.sign({ id: user.id, email: user.email, rol: user.rol }, process.env.JWT_SECRET, { expiresIn: "1h" });
-
-    let ip = req.headers["x-forwarded-for"] || req.connection.remoteAddress;
-    if (ip && ip.includes(",")) ip = ip.split(",")[0].trim();
-
-    let esLocalhost = false;
-    if (ip === "::1" || ip === "127.0.0.1" || !ip) { esLocalhost = true; ip = "189.204.0.0"; }
-
-    let ubicacion = ip ? await obtenerUbicacionIP(ip) : null;
-    if (!ubicacion && esLocalhost) ubicacion = { ip, country: "MX", region: "CMX", city: "Ciudad de México", ll: [19.42847, -99.12766], timezone: "America/Mexico_City" };
-
-    await pool.query(`INSERT INTO sesion (usuario_id, ip, ubicacion, fecha) VALUES ($1, $2, $3, NOW())`, [user.id, ip, JSON.stringify(ubicacion)]);
-
-    userActivity[user.email] = { lastActive: Date.now(), token };
-    delete otpStore[email];
-
-    return res.json({ token, rol: user.rol, ubicacion: ubicacion || "No disponible" });
-
-  } catch (err) {
-    console.error("Error en verificarOtp:", err);
-    return res.status(500).json({ msg: "Error en el servidor" });
-  }
-};
-
-// ================= HISTORIAL DE SESIONES =================
-exports.historialSesiones = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const sesiones = await Sesion.obtenerPorUsuario(userId);
-    if (!sesiones || sesiones.length === 0) return res.status(404).json({ msg: "No hay historial de sesiones" });
-    return res.json(sesiones);
-  } catch (err) {
-    console.error("Error historialSesiones:", err);
-    return res.status(500).json({ msg: "Error en el servidor" });
-  }
-};
-
-// ================= LISTAR USUARIOS =================
-exports.listarUsuarios = async (req, res) => {
-  try {
-    const usuarios = await Usuario.obtenerTodos();
-    if (!usuarios || usuarios.length === 0) return res.status(404).json({ msg: "No se encontraron usuarios" });
-    return res.json(usuarios);
-  } catch (err) {
-    console.error("Error listarUsuarios:", err);
     return res.status(500).json({ msg: "Error en el servidor" });
   }
 };
